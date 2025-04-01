@@ -6,8 +6,8 @@
 ;gcode_flavor: marlin
 ;renderMethod: line
 ;max_power: 255
-;file_total_lines: FILE_TOTAL_LINE_COUNT
-;estimated_time(s): ESTIMATED_TIME
+;file_total_lines: 87585
+;estimated_time(s): 475
 ;is_rotate: false
 ;diameter: 0
 ;max_x(mm): 40.116
