@@ -547,10 +547,10 @@ class PCB:
 
         gcode, eta = convert_image_to_gcode(log, gcode, holes, top_layer_outline, scale, settings, outline_points)
 
-        gcode = gcode.replace("FILE_TOTAL_LINE_COUNT", str(len(gcode)))
+        gcode = gcode.replace("FILE_TOTAL_LINE_COUNT", str(len(gcode.split("\n"))))
         gcode = gcode.replace("ESTIMATED_TIME", str(round(eta)))
 
-        print(f"\nLine Count: {len(gcode)}")
+        print(f"\nLine Count: {len(gcode.split("\n"))}")
         print(f"Estimated time: {round(eta)}s ({int(eta // 3600)}h:{int((eta - ((eta // 3600) * 3600)) // 60)}m:{round(eta - ((eta - ((eta // 3600) * 3600)) // 60) * 60)}s)")
 
         with open("output.cnc", "w") as f:
