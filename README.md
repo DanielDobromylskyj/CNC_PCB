@@ -18,10 +18,11 @@ This is a program to convert a extracted gerber file into a .cnc file containing
   - `matplotlib` (for visualizations, optional)
   - `pygame` (For App)
   - `cv2` (For App)
+  - `numpy` (For App)
 
 Install dependencies with:
 ```bash
-py -m pip install pillow matplotlib opencv-python pygame
+py -m pip install pillow matplotlib opencv-python pygame numpy
 ```
 
 ## Usage
