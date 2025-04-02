@@ -1,9 +1,56 @@
 import threading
+import time
+
 import pygame
 from tkinter.filedialog import askdirectory
 
 import gui_render
 import main as main_pcb
+from logger import ProgressLogger
+
+
+class LoggerCapture(ProgressLogger):
+    def __init__(self, size, blocks=40):
+        super().__init__(size, blocks=blocks)
+        print("\r", end="")
+
+        self.status = 0
+        self.nudge_value = 1 / size
+        self.count = 0
+
+
+    def __display_progress(self, force=False):
+        pass
+
+    def complete_single(self):
+        self.status += self.nudge_value
+        self.status = min(self.status, 1)
+
+        self.count += 1
+
+    def log(self, text):
+        pass
+
+
+class Processor:
+    def __init__(self):
+        self.pcb = None
+        self.logger = None
+
+    def get_value(self):
+        if self.logger is None:
+            return 0
+
+        return self.logger.status
+
+    def reset(self):
+        self.logger = None
+
+    def start(self, pcb, settings):
+        steps = 19
+
+        self.logger = LoggerCapture(steps)
+        pcb.convert(settings, self.logger)
 
 
 class TopSectorMenu:
@@ -64,6 +111,8 @@ class RenderPreview:
         self.pcb = pcb
         self.loaded = False
 
+        self.font = pygame.sysfont.SysFont("monospace", 38)
+
         self.prev_pcb = Variable(None)
 
         self.pcb_image = None
@@ -77,6 +126,9 @@ class RenderPreview:
         pcb = self.pcb.get()
 
         if pcb:
+            if pcb.size[0] > 200 or pcb.size[1] > 200:
+                return
+
             pcb.render("tmp/latest_board.png")
             self.pcb_image = gui_render.load_texture("tmp/latest_board.png")
 
@@ -93,6 +145,10 @@ class RenderPreview:
         if self.pcb_image is not None:
             gui_render.draw_cuboid(self.surface, self.pcb_image, self.pcb_image.shape[1], self.pcb_image.shape[0], 5, self.angles[0], self.angles[1], self.angles[2], dx=self.dx, dy=self.dy)
 
+        else:
+            if self.pcb.get() is not None:
+                text = self.font.render("Size To Large To Render", True, (0, 0, 0))
+                self.surface.blit(text, (0, 0))
 
 class Variable:
     def __init__(self, value):
@@ -136,9 +192,16 @@ class ProgressBar:
         self.surface.blit(self.hidden_surface, (0, 0))
 
         pygame.draw.rect(
-            self.hidden_surface,
+            self.surface,
+            (10, 255, 10, 255),
+            (0, 0, round(self.width * self.variable.get()), self.height),
+            border_radius=3,
+        )
+
+        pygame.draw.rect(
+            self.surface,
             (0, 0, 0, 255),
-            (0, 0, round(self.width * (self.variable.get() / 100)), self.height),
+            (0, 0, self.width, self.height),
             width=3,
             border_radius=3,
         )
@@ -192,8 +255,20 @@ def open_file(pcb_var):
         pcb_var.set(main_pcb.PCB(path))
 
 
-def process_pcb(pcb_var, process_viewer, progress_bar):
-    print("GEN")
+def process_pcb(pcb_var, pcb_prc, completion_progress_var, settings):
+    pcb_prc.reset()
+
+    threading.Thread(target=pcb_prc.start, args=(pcb_var.get(), settings)).start()
+
+    while True:
+        completion_progress_var.set(pcb_prc.get_value())
+        time.sleep(0.01)
+
+        if pcb_prc.get_value() >= 1:
+            completion_progress_var.set(pcb_prc.get_value())
+            return
+
+
 
 
 def main(path=None):
@@ -209,17 +284,21 @@ def main(path=None):
 
 
     preview = RenderPreview(600, 780, pcb_var)
-    pcb_prc = pcb_processor(200, 580, pcb_var)
+    pcb_prc = Processor()
+    pcb_prc_display = pcb_processor(200, 580, pcb_var)
 
     sub_windows = [
         (TopSectorMenu(800, 20), (0, 0)),
         (preview, (200, 20)),
         (ProgressBar(500, 20, completion_progress_var), (250, 570)),
-        (pcb_prc, (0, 20))
+        (pcb_prc_display, (0, 20))
     ]
 
     rotating_pcb = False
     pcb_rotation_scale = 0.5
+
+    settings = main_pcb.PCB.default_settings()
+    settings["max_tool_width_at_4mm"] = 0.2
 
     running = True
     loading = [True, 0]
@@ -244,8 +323,8 @@ def main(path=None):
                     if (140 <= x <= 200) and (y < 20):
                         print("HELP")
 
-                    if pcb_prc.gen_button_rect is not None and pcb_prc.gen_button_rect.collidepoint(x, y - 20):
-                        threading.Thread(target=process_pcb, args=(pcb_var, pcb_prc, sub_windows[2][0])).start()
+                    if pcb_prc_display.gen_button_rect is not None and pcb_prc_display.gen_button_rect.collidepoint(x, y - 20):
+                        threading.Thread(target=process_pcb, args=(pcb_var, pcb_prc, completion_progress_var, settings)).start()
 
             if event.type == pygame.MOUSEMOTION:
                 dx, dy = event.rel
@@ -281,10 +360,7 @@ def main(path=None):
 
         pygame.display.flip()
 
-        if loading[0] is False:
-            clock.tick(60)
-        else:
-            clock.tick(5)  # reduce stress on system for startup
+        clock.tick(60)
 
     pygame.quit()
 if __name__:

@@ -319,6 +319,14 @@ class PCB:
         self.no_plated_though_holes = Drill_Gerber(os.path.join(self.path, "Drill_NPTH_Through.DRL"))
         self.plated_though_holes = Drill_Gerber(os.path.join(self.path, "Drill_PTH_Through.DRL"))
 
+        outline_points: list[tuple[float, float]] = [(command[1], command[2]) for command in self.outline.commands if
+                                                     command[0] == "draw"]
+
+        min_xy = min(outline_points, key=lambda p: p[0])[0] - 1, min(outline_points, key=lambda p: p[1])[1] - 1
+        max_xy = max(outline_points, key=lambda p: p[0])[0] + 1, max(outline_points, key=lambda p: p[1])[1] + 1
+
+        self.size = [max_xy[0] - min_xy[0], max_xy[1] - min_xy[1]]
+
     def convert_shape_to_lines(self, shape, def_params):
         params = []
         for i, param in enumerate(shape["params"]):
@@ -408,6 +416,8 @@ class PCB:
             "max_tool_width_at_4mm": 1,
 
             "pcb_hole_outline_width": 0.2,
+
+            "generation_scale": 20
         }
 
 
@@ -443,11 +453,11 @@ class PCB:
 ; Made by Daniel Dobromylskyj (https://www.github.com/DanielDobromylskyj)
 ; G-code START <<<"""
 
-    def convert(self, settings: dict):
-        scale = 20
+    def convert(self, settings: dict, log=None):
+        scale = settings["generation_scale"]
 
-        steps = (settings["max_tool_width_at_4mm"] * scale / 2) + 5 + 3 - 1
-        log = ProgressLogger(steps, "Processing")
+        if not log:
+            log = ProgressLogger(19, "Processing")
 
         outline_points: list[tuple[float, float]] = [(command[1], command[2]) for command in self.outline.commands if command[0] == "draw"]
 
@@ -466,9 +476,6 @@ class PCB:
 
                 draw.line([round((x1-min_xy[0])*scale), round((y1-min_xy[1])*scale), round((x2-min_xy[0])*scale), round((y2-min_xy[1])*scale)], 0, round(width*scale))
 
-        log.log("Top Layer Traces")
-        log.complete_single()
-
         r_extra = settings["pcb_hole_outline_width"]
         for hole in self.plated_though_holes.holes:
             x, y, r = hole
@@ -484,8 +491,6 @@ class PCB:
                 fill=0
             )
 
-        log.log("Though Holes (Plated)")
-        log.complete_single()
 
         for hole in self.no_plated_though_holes.holes:
             x, y, r = hole
@@ -501,8 +506,7 @@ class PCB:
                 fill=0
             )
 
-        log.log("Though Holes (Not Plated)")
-        log.complete_single()
+
 
         for hole in self.vias.holes:
             x, y, r = hole
@@ -518,8 +522,6 @@ class PCB:
                 fill=0
             )
 
-        log.log("Vias")
-        log.complete_single()
 
         for pad in self.topPasteMask.pad_locations:
             x, y = pad["pos"]
@@ -538,10 +540,13 @@ class PCB:
             else:
                 draw.polygon([(((x-min_xy[0]) + px)*scale, ((y-min_xy[1]) + py)*scale) for px, py in pad_points], fill=0)
 
-        log.log("Pads")
+        log.log("Load")
         log.complete_single()
 
         top_layer_outline = gpu_create_outline(log, top_layer, round((settings["max_tool_width_at_4mm"] * scale) / 2))
+
+        log.log("Outlined")
+        log.complete_single()
 
         holes = {
             "via": [(x-min_xy[0], y-min_xy[1], diameter) for x, y, diameter in self.vias.holes],
@@ -564,7 +569,6 @@ class PCB:
     def __create_outline(log, img, outline_width):  # GPU based option can be used now (gpu_path_generator.create_outline(log, img, width))
         outline = Image.new("1", img.size, 1)
         img_copy = img.convert("1")
-        log.log("Tool Paths")
 
         positions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
@@ -587,7 +591,6 @@ class PCB:
                                 outline_pixels[x, y] = 0
 
             img_copy = working_copy
-            log.complete_single()
 
         return outline
 
@@ -605,7 +608,7 @@ class PCB:
         fig_width = width_pixels / dpi
         fig_height = height_pixels / dpi
 
-        fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi, facecolor=(184/255, 115/255, 51/255))
 
         for command in self.topSilkscreen.commands:
             if command[0] == 'draw':

@@ -53,9 +53,8 @@ def convert_image_to_gcode(log, header, holes, image, scale, settings, outline_p
 
                 sections.append(section)
 
-    log.complete_single()
-
-    log.log("Trace Gcode")
+        if x % (image.size[0] // 4) == 0:
+            log.complete_single()
 
     TRAVEL_HEIGHT = 5
     CUT_HEIGHT =  -.4

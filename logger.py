@@ -60,14 +60,3 @@ class ProgressLogger:
         print(f"{bcolors.ENDC}{' ' * (self.blocks - block_percent)}|", end="", flush=True)
 
         self.last_display = time.time()
-
-
-if __name__ == "__main__":
-    import time
-    x = [i for i in range(1312)]
-    for logger, value in ProgressLogger(x, display_text="Downloading"):
-        if value % 10 == 0:
-            logger.log(f"File {value // 10}")
-
-        time.sleep(0.01)
-

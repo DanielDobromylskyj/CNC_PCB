@@ -4,8 +4,8 @@ import cv2
 import math
 
 # Colors
-COPPER = (184, 115, 51)  # Copper color
-FR4 = (50, 120, 50)  # Green PCB color
+FR4_Base = (40, 110, 40)
+FR4 = (50, 120, 50)
 WHITE = (255, 255, 255)
 
 
@@ -97,18 +97,18 @@ def draw_cuboid(surface, img, cuboid_width, cuboid_height, cuboid_depth, angle_x
 
     # Define faces (with depth sorting)
     faces = [
-        (projected[0], projected[1], projected[2], projected[3], FR4,
-         sum(v[2] for v in [projected[0], projected[1], projected[2], projected[3]]) / 4),  # Back
+        (projected[0], projected[1], projected[2], projected[3], FR4_Base,
+         sum(v[2] for v in [projected[0], projected[1], projected[2], projected[3]]) / 4),
         (projected[4], projected[5], projected[6], projected[7], WHITE,
         sum(v[2] for v in [projected[4], projected[5], projected[6], projected[7]]) / 4),
-        (projected[0], projected[1], projected[5], projected[4], COPPER,
-         sum(v[2] for v in [projected[0], projected[1], projected[5], projected[4]]) / 4),  # Side 1 (Copper/FR4)
-        (projected[2], projected[3], projected[7], projected[6], COPPER,
-         sum(v[2] for v in [projected[2], projected[3], projected[7], projected[6]]) / 4),  # Side 2 (Copper/FR4)
-        (projected[1], projected[2], projected[6], projected[5], COPPER,
-         sum(v[2] for v in [projected[1], projected[2], projected[6], projected[5]]) / 4),  # Side 3 (Copper/FR4)
-        (projected[0], projected[3], projected[7], projected[4], COPPER,
-         sum(v[2] for v in [projected[0], projected[3], projected[7], projected[4]]) / 4),  # Side 4 (Copper/FR4)
+        (projected[0], projected[1], projected[5], projected[4], FR4,
+         sum(v[2] for v in [projected[0], projected[1], projected[5], projected[4]]) / 4),
+        (projected[2], projected[3], projected[7], projected[6], FR4,
+         sum(v[2] for v in [projected[2], projected[3], projected[7], projected[6]]) / 4),
+        (projected[1], projected[2], projected[6], projected[5], FR4,
+         sum(v[2] for v in [projected[1], projected[2], projected[6], projected[5]]) / 4),
+        (projected[0], projected[3], projected[7], projected[4], FR4,
+         sum(v[2] for v in [projected[0], projected[3], projected[7], projected[4]]) / 4),
     ]
 
     # Sort faces by depth (draw furthest first)
@@ -116,8 +116,9 @@ def draw_cuboid(surface, img, cuboid_width, cuboid_height, cuboid_depth, angle_x
 
     # Draw faces
     for f in faces:
-        face_points = [f[0][:2], f[1][:2], f[2][:2], f[3][:2]]
-        pygame.draw.polygon(surface, f[4], [(x + dx, y + dy) for x, y in face_points])
+        if f[4] != WHITE:
+            face_points = [f[0][:2], f[1][:2], f[2][:2], f[3][:2]]
+            pygame.draw.polygon(surface, f[4], [(x + dx, y + dy) for x, y in face_points])
 
 
     # Draw top face with texture last
@@ -135,7 +136,6 @@ def draw_cuboid(surface, img, cuboid_width, cuboid_height, cuboid_depth, angle_x
                     [(0, 0), (cuboid_width, 0), (cuboid_width, cuboid_height), (0, cuboid_height)],
                             [tp_translated[2], tp_translated[3], tp_translated[0], tp_translated[1]])
 
-        #warped_texture = pygame.transform.rotate(warped_texture, 180)
         warped_texture = pygame.transform.flip(warped_texture, True, False)
         surface.blit(warped_texture, (min_x + dx, min_y + dy))
 
@@ -151,6 +151,8 @@ if __name__ == "__main__":
     cuboid_height = 326
     cuboid_depth = 50
 
+    angle_x, angle_y, angle_z = 0, 0, 0
+
     # Screen settings
     WIDTH, HEIGHT = 1920, 1080
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -164,7 +166,7 @@ if __name__ == "__main__":
     while running:
         screen.fill((30, 30, 30))  # Background color
 
-        draw_cuboid(screen, top_texture, angle_x, angle_y, angle_z)
+        draw_cuboid(screen, top_texture, cuboid_width, cuboid_height, cuboid_depth, angle_x, angle_y, angle_z)
 
         pygame.display.flip()
         clock.tick(60)
