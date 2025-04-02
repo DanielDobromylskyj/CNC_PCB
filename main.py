@@ -547,10 +547,10 @@ class PCB:
 
         gcode, eta = convert_image_to_gcode(log, gcode, holes, top_layer_outline, scale, settings, outline_points)
 
-        gcode = gcode.replace("FILE_TOTAL_LINE_COUNT", str(len(gcode)))
+        gcode = gcode.replace("FILE_TOTAL_LINE_COUNT", str(len(gcode.split("\n"))))
         gcode = gcode.replace("ESTIMATED_TIME", str(round(eta)))
 
-        print(f"\nLine Count: {len(gcode)}")
+        print(f"\nLine Count: {len(gcode.split("\n"))}")
         print(f"Estimated time: {round(eta)}s ({int(eta // 3600)}h:{int((eta - ((eta // 3600) * 3600)) // 60)}m:{round(eta - ((eta - ((eta // 3600) * 3600)) // 60) * 60)}s)")
 
         with open("output.cnc", "w") as f:
@@ -587,9 +587,21 @@ class PCB:
 
         return outline
 
-    def render(self):
+    def render(self, output=None):
         """Render parsed Gerber with matplotlib."""
-        fig, ax = plt.subplots()
+        outline_points: list[tuple[float, float]] = [(command[1], command[2]) for command in self.outline.commands if command[0] == "draw"]
+
+        min_xy = min(outline_points, key=lambda p: p[0])[0] - 1, min(outline_points, key=lambda p: p[1])[1] - 1
+        max_xy = max(outline_points, key=lambda p: p[0])[0] + 1, max(outline_points, key=lambda p: p[1])[1] + 1
+
+        width_pixels = (max_xy[0] - min_xy[0]) * 10
+        height_pixels = (max_xy[1] - min_xy[1]) * 10
+        dpi = 50
+
+        fig_width = width_pixels / dpi
+        fig_height = height_pixels / dpi
+
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
 
         for command in self.topSilkscreen.commands:
             if command[0] == 'draw':
@@ -642,13 +654,14 @@ class PCB:
 
 
         ax.set_aspect('equal')
-        plt.xlabel("X (mm)")
-        plt.ylabel("Y (mm)")
-        plt.title("TopView")
-        plt.legend(loc='upper left', bbox_to_anchor=(0, 2))
+        plt.grid(False)
 
-        plt.grid(True)
-        plt.show()
+
+        if output is None:
+            plt.show()
+        else:
+            ax.set_axis_off()
+            plt.savefig(output)
 
 if __name__ == "__main__":
     path = input("Path (Do not include any quotation marks, Using '/' not '\\'): ").replace("\\", "/")
