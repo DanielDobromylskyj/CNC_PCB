@@ -26,6 +26,18 @@ py -m pip install pillow matplotlib opencv-python pygame numpy
 ```
 
 ## Usage
+This is for the module, not GUI
    ```python
-    I will add demo code one day
+    # Import from whatever it is called if I turn this to a module
+    from main import PCB
+
+    path = r"path/to/extracted/gerber/"
+    pcb = PCB(path)
+
+    # Render with matplotlib
+    pcb.render()  # parse a path as a string to save as an image
+
+    # Converting to Gcode
+    config = PCB.default_settings()  # Feel free to edit this dict
+    pcb.convert(config)  # Outputs as 'output.cnc'    
    ```
