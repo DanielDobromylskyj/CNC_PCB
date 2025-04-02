@@ -1,4 +1,6 @@
+import threading
 import pygame
+from tkinter.filedialog import askdirectory
 
 import gui_render
 import main as main_pcb
@@ -62,6 +64,8 @@ class RenderPreview:
         self.pcb = pcb
         self.loaded = False
 
+        self.prev_pcb = Variable(None)
+
         self.pcb_image = None
 
         self.angles = [0, 0, 0]
@@ -70,15 +74,21 @@ class RenderPreview:
 
     def load(self):
         self.surface.fill((100, 100, 100))
+        pcb = self.pcb.get()
 
-        if self.pcb:
-            self.pcb.render("tmp/latest_board.png")
+        if pcb:
+            pcb.render("tmp/latest_board.png")
             self.pcb_image = gui_render.load_texture("tmp/latest_board.png")
 
         self.loaded = True
 
     def render(self):
         self.surface.fill((100, 100, 100))
+
+        if self.prev_pcb.get() != self.pcb.get():
+            self.load()
+            self.prev_pcb.set(self.pcb.get())
+
 
         if self.pcb_image is not None:
             gui_render.draw_cuboid(self.surface, self.pcb_image, self.pcb_image.shape[1], self.pcb_image.shape[0], 5, self.angles[0], self.angles[1], self.angles[2], dx=self.dx, dy=self.dy)
@@ -134,6 +144,58 @@ class ProgressBar:
         )
 
 
+class pcb_processor:
+    def __init__(self, width, height, pcb_var):
+        self.surface = pygame.Surface((width, height))
+        self.width = width
+        self.height = height
+        self.pcb_var = pcb_var
+        self.loaded = False
+        self.prev_pcb = Variable(None)
+
+        self.font = pygame.sysfont.SysFont("monospace", 20)
+        self.generation_data = {}
+        self.gen_button_rect = None
+
+    def load(self):
+        self.surface.fill((200,200,200))
+
+        pcb = self.pcb_var.get()
+        if pcb is not None:
+            if not self.generation_data:
+                text = self.font.render("Generate Gcode", True, (0, 0, 0))
+                self.gen_button_rect = text.get_rect()
+                self.gen_button_rect.topleft = (10, 10)
+
+                pygame.draw.rect(
+                    self.surface,
+                    (0, 0, 0),
+                    self.gen_button_rect,
+                    width=2
+                )
+                self.surface.blit(text, (10, 10))
+
+
+
+
+        self.loaded = True
+
+    def render(self):
+        if self.prev_pcb.get() != self.pcb_var.get():
+            self.load()
+            self.prev_pcb.set(self.pcb_var.get())
+
+def open_file(pcb_var):
+    path = askdirectory(title="PCB Gerber Selector")
+
+    if path:
+        pcb_var.set(main_pcb.PCB(path))
+
+
+def process_pcb(pcb_var, process_viewer, progress_bar):
+    print("GEN")
+
+
 def main(path=None):
     pygame.init()
 
@@ -143,12 +205,17 @@ def main(path=None):
     completion_progress_var = Variable(0)
 
     pcb = main_pcb.PCB(path) if path else None
-    preview = RenderPreview(600, 780, pcb)
+    pcb_var = Variable(pcb)
+
+
+    preview = RenderPreview(600, 780, pcb_var)
+    pcb_prc = pcb_processor(200, 580, pcb_var)
 
     sub_windows = [
         (TopSectorMenu(800, 20), (0, 0)),
         (preview, (200, 20)),
         (ProgressBar(500, 20, completion_progress_var), (250, 570)),
+        (pcb_prc, (0, 20))
     ]
 
     rotating_pcb = False
@@ -168,14 +235,24 @@ def main(path=None):
                     if (x > 200) and (y > 20):
                         rotating_pcb = True
 
+                    if (0 <= x <= 60) and (y < 20):
+                        threading.Thread(target=open_file, args=(pcb_var,)).start()
+
+                    if (60 <= x <= 140) and (y < 20):
+                        print("Config")
+
+                    if (140 <= x <= 200) and (y < 20):
+                        print("HELP")
+
+                    if pcb_prc.gen_button_rect is not None and pcb_prc.gen_button_rect.collidepoint(x, y - 20):
+                        threading.Thread(target=process_pcb, args=(pcb_var, pcb_prc, sub_windows[2][0])).start()
+
             if event.type == pygame.MOUSEMOTION:
                 dx, dy = event.rel
 
                 if rotating_pcb:
                     preview.angles[1] -= dx * pcb_rotation_scale
                     preview.angles[0] -= dy * pcb_rotation_scale
-
-
 
 
             if event.type == pygame.MOUSEBUTTONUP:
@@ -203,8 +280,12 @@ def main(path=None):
             screen.blit(sub_window.surface, xy)
 
         pygame.display.flip()
-        clock.tick(60)
+
+        if loading[0] is False:
+            clock.tick(60)
+        else:
+            clock.tick(5)  # reduce stress on system for startup
 
     pygame.quit()
 if __name__:
-    main("battery_test_gerber")
+    main()

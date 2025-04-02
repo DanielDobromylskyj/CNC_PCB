@@ -8,6 +8,8 @@ import re
 from convert import convert_image_to_gcode
 from logger import ProgressLogger
 
+from gpu_path_generator import create_outline as gpu_create_outline
+
 def read_coord(data, int_count, float_count):  # todo - make this have diff values for x/y
     x_data, other = data.replace("X", "").split("Y")
     y_data = ""
@@ -536,8 +538,8 @@ class PCB:
         log.log("Pads")
         log.complete_single()
 
-        top_layer_outline = self.__create_outline(log, top_layer, round((settings["max_tool_width_at_4mm"] * scale) / 2))
-        #top_layer_outline.show()
+        top_layer_outline = gpu_create_outline(log, top_layer, 1)  # round((settings["max_tool_width_at_4mm"] * scale) / 2)
+        top_layer_outline.show()
 
         holes = {
             "via": [(x-min_xy[0], y-min_xy[1], diameter) for x, y, diameter in self.vias.holes],
