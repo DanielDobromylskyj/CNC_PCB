@@ -8,7 +8,7 @@ This is a program to convert a extracted gerber file into a .cnc file containing
 
 - **Flexible Configuration**: Supports custom sized CNC tools, and will attempt to create the best gcode for the given tool
 - **Python 3.12 Compatibility**: Built and tested in Python 3.12.
-- **Powerfull Viewer**: Builtin PCB viewer (and Gcode previewer - One day)
+- **Not Very Powerfull Viewer**: Builtin PCB viewer (and Gcode previewer - One day)
 
 ## Requirements
 
