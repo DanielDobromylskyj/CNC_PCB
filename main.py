@@ -480,7 +480,8 @@ class PCB:
                     (y - min_xy[1] + (r + r_extra)) * scale  # Bottom
                 ],
                 outline=0,  # Use a color like "black" or (0, 0, 0)
-                width=1  # Set stroke width
+                width=1,  # Set stroke width
+                fill=0
             )
 
         log.log("Though Holes (Plated)")
@@ -496,7 +497,8 @@ class PCB:
                     (y - min_xy[1] + (r + r_extra)) * scale  # Bottom
                 ],
                 outline=0,  # Use a color like "black" or (0, 0, 0)
-                width=1  # Set stroke width
+                width=1,  # Set stroke width
+                fill=0
             )
 
         log.log("Though Holes (Not Plated)")
@@ -512,7 +514,8 @@ class PCB:
                     (y - min_xy[1] + (r + r_extra)) * scale  # Bottom
                 ],
                 outline=0,  # Use a color like "black" or (0, 0, 0)
-                width=1  # Set stroke width
+                width=1,  # Set stroke width
+                fill=0
             )
 
         log.log("Vias")
@@ -538,8 +541,7 @@ class PCB:
         log.log("Pads")
         log.complete_single()
 
-        top_layer_outline = gpu_create_outline(log, top_layer, 1)  # round((settings["max_tool_width_at_4mm"] * scale) / 2)
-        top_layer_outline.show()
+        top_layer_outline = gpu_create_outline(log, top_layer, round((settings["max_tool_width_at_4mm"] * scale) / 2))
 
         holes = {
             "via": [(x-min_xy[0], y-min_xy[1], diameter) for x, y, diameter in self.vias.holes],
@@ -559,7 +561,7 @@ class PCB:
             f.write(gcode)
 
     @staticmethod
-    def __create_outline(log, img, outline_width):
+    def __create_outline(log, img, outline_width):  # GPU based option can be used now (gpu_path_generator.create_outline(log, img, width))
         outline = Image.new("1", img.size, 1)
         img_copy = img.convert("1")
         log.log("Tool Paths")
