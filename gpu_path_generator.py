@@ -60,7 +60,6 @@ def create_outline(log, img, outline_width):
                                np.int32(height), np.int32(i))
 
         cl.enqueue_copy(queue, img1_buffer, img2_buffer)
-        log.complete_single()
 
     cl.enqueue_copy(queue, outline_data, outline_buffer).wait()
     outline_copy = Image.fromarray(outline_data.astype(np.uint8) * 255)

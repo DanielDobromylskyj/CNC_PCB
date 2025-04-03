@@ -47,7 +47,7 @@ class Processor:
         self.logger = None
 
     def start(self, pcb, settings):
-        steps = 19
+        steps = 9
 
         self.logger = LoggerCapture(steps)
         pcb.convert(settings, self.logger)
@@ -269,7 +269,7 @@ def process_pcb(pcb_var, pcb_prc, completion_progress_var, settings):
             return
 
 
-
+SELECT_TYPE_MAX_ONE = 0
 
 def main(path=None):
     pygame.init()
@@ -296,6 +296,21 @@ def main(path=None):
 
     rotating_pcb = False
     pcb_rotation_scale = 0.5
+
+    config_menu_open = False
+
+    config_path = "@@"
+    config_menu = {
+        "machine": {
+            "type": SELECT_TYPE_MAX_ONE,
+            "selected": 0,
+            "options": [
+                "Snapmaker 3in1",
+                "Test option",
+                "Test option2"
+            ]
+        }
+    }
 
     settings = main_pcb.PCB.default_settings()
     settings["max_tool_width_at_4mm"] = 0.2
@@ -357,6 +372,10 @@ def main(path=None):
                 sub_window.render()
 
             screen.blit(sub_window.surface, xy)
+
+
+        if config_menu_open:
+
 
         pygame.display.flip()
 

@@ -457,7 +457,7 @@ class PCB:
         scale = settings["generation_scale"]
 
         if not log:
-            log = ProgressLogger(19, "Processing")
+            log = ProgressLogger(9, "Processing")
 
         outline_points: list[tuple[float, float]] = [(command[1], command[2]) for command in self.outline.commands if command[0] == "draw"]
 
