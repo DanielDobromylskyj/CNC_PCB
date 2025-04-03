@@ -1,5 +1,6 @@
 import threading
 import time
+import json
 
 import pygame
 from tkinter.filedialog import askdirectory
@@ -47,7 +48,7 @@ class Processor:
         self.logger = None
 
     def start(self, pcb, settings):
-        steps = 9
+        steps = 8
 
         self.logger = LoggerCapture(steps)
         pcb.convert(settings, self.logger)
@@ -260,9 +261,10 @@ def process_pcb(pcb_var, pcb_prc, completion_progress_var, settings):
 
     threading.Thread(target=pcb_prc.start, args=(pcb_var.get(), settings)).start()
 
-    while True:
+    start = time.time()
+    while (start + 60) > time.time():  # stops updating display after 1min for performances sake
         completion_progress_var.set(pcb_prc.get_value())
-        time.sleep(0.01)
+        time.sleep(0.1)
 
         if pcb_prc.get_value() >= 1:
             completion_progress_var.set(pcb_prc.get_value())
@@ -271,11 +273,63 @@ def process_pcb(pcb_var, pcb_prc, completion_progress_var, settings):
 
 SELECT_TYPE_MAX_ONE = 0
 
+
+def display_config(font, screen, dx, dy, config_menu, config_path, config_menu_buttons, depth):
+    if not config_path:
+        return
+
+    config_menu_working = config_menu.copy()[config_path[0]]
+
+    config_menu_working_true = config_menu_working["options"] if "type" in config_menu_working else config_menu_working
+
+
+    option_text_surfaces = [
+        font.render(option, True, (0, 0, 255 * ("type" in config_menu_working and option == config_menu_working["selected"])))
+        for option in config_menu_working_true
+    ]
+
+    if len(option_text_surfaces) == 0:
+        return
+
+    width = max(option_text_surfaces, key=lambda surface: surface.get_width()).get_width()
+    height = sum([surface.get_height() for surface in option_text_surfaces])
+
+    pygame.draw.rect(
+        screen,
+        (250, 250, 250),
+        (dx, dy, width, height)
+    )
+
+    y = dy
+    for i, option in enumerate(option_text_surfaces):
+        screen.blit(option, (dx, y))
+
+        if "type" not in config_menu_working:
+            config_menu_buttons.append((
+                pygame.Rect(dx, y, option.get_width(), option.get_height()),
+                (list(config_menu_working.keys())[int(i)], depth)
+            ))
+        elif config_menu_working["type"] == SELECT_TYPE_MAX_ONE:
+            config_menu_buttons.append((
+                pygame.Rect(dx, y, option.get_width(), option.get_height()),
+                (f"COMMAND:MAX_ONE:SET_VALUE:{config_menu_working_true[int(i)]}", depth)
+            ))
+
+        y += option.get_height()
+
+    if "type" not in config_menu_working:
+        dx += width
+        dy += sum([option_text_surfaces[i].get_height() for i in range(list(config_menu.keys()).index(config_path[0]))])
+
+        display_config(font, screen, dx, dy, config_menu_working, config_path[1:], config_menu_buttons, depth+1)
+
 def main(path=None):
     pygame.init()
 
     screen = pygame.display.set_mode((800, 600))
     clock = pygame.time.Clock()
+
+    font = pygame.sysfont.SysFont("monospace", 16)
 
     completion_progress_var = Variable(0)
 
@@ -299,18 +353,10 @@ def main(path=None):
 
     config_menu_open = False
 
-    config_path = "@@"
-    config_menu = {
-        "machine": {
-            "type": SELECT_TYPE_MAX_ONE,
-            "selected": 0,
-            "options": [
-                "Snapmaker 3in1",
-                "Test option",
-                "Test option2"
-            ]
-        }
-    }
+    config_path = []
+    config_menu = json.load(open("config.json", "r"))
+
+    config_menu_buttons = []
 
     settings = main_pcb.PCB.default_settings()
     settings["max_tool_width_at_4mm"] = 0.2
@@ -326,6 +372,39 @@ def main(path=None):
                 if event.button == 1:  # left click
                     x, y = event.pos
 
+                    if config_menu_open:
+                        click_config = False
+                        for button, data in config_menu_buttons:
+                            if button.collidepoint((x, y)):
+                                option, index = data
+
+                                if option.startswith("COMMAND"):
+                                    _, select_type, command, param = option.split(":")
+
+                                    if select_type == "MAX_ONE" and command == "SET_VALUE":
+                                        working_menu = config_menu
+                                        for path in config_path:
+                                            working_menu = working_menu[path]
+
+                                        working_menu["selected"] = param
+
+                                        json.dump(config_menu, open("config.json", "w"))
+
+
+                                else:
+                                    config_path = [
+                                        path
+                                        for i, path in enumerate(config_path)
+                                        if i < index
+                                    ]
+
+                                    config_path.append(option)
+                                click_config = True
+                                continue
+
+                        if click_config:
+                            continue
+
                     if (x > 200) and (y > 20):
                         rotating_pcb = True
 
@@ -333,10 +412,14 @@ def main(path=None):
                         threading.Thread(target=open_file, args=(pcb_var,)).start()
 
                     if (60 <= x <= 140) and (y < 20):
-                        print("Config")
+                        if config_menu_open:
+                            config_menu_open = False
+                        else:
+                            config_menu_open = True
+                            config_path = []
 
                     if (140 <= x <= 200) and (y < 20):
-                        print("HELP")
+                        print("This is no help ik, but not implemented")
 
                     if pcb_prc_display.gen_button_rect is not None and pcb_prc_display.gen_button_rect.collidepoint(x, y - 20):
                         threading.Thread(target=process_pcb, args=(pcb_var, pcb_prc, completion_progress_var, settings)).start()
@@ -353,8 +436,6 @@ def main(path=None):
                 if event.button == 1:
                     if rotating_pcb:
                         rotating_pcb = False
-
-
 
         screen.fill((200,200,200))
 
@@ -375,7 +456,38 @@ def main(path=None):
 
 
         if config_menu_open:
-            pass
+            config_menu_buttons = []
+            dx, dy = 60, 20
+
+            option_text_surfaces = [
+                font.render(option, True, (0, 0, 0))
+                for option in config_menu
+            ]
+
+            width = max(option_text_surfaces, key=lambda surface: surface.get_width()).get_width()
+            height = sum([surface.get_height() for surface in option_text_surfaces])
+
+            pygame.draw.rect(
+                screen,
+                (250, 250, 250),
+                (dx, dy, width, height)
+            )
+
+            y = dy
+            for i, option in enumerate(option_text_surfaces):
+                screen.blit(option, (dx, y))
+                config_menu_buttons.append((
+                    pygame.Rect(dx, y, option.get_width(), option.get_height()),
+                    (list(config_menu.keys())[int(i)], 0)
+                ))
+                y += option.get_height()
+
+
+            if config_path:
+                dx += width
+                dy += sum([option_text_surfaces[i].get_height() for i in range(list(config_menu.keys()).index(config_path[0]))])
+
+                display_config(font, screen, dx, dy, config_menu, config_path, config_menu_buttons, 1)
 
 
         pygame.display.flip()

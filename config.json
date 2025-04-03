@@ -1,0 +1,1 @@
+{"machine": {"type": 0, "selected": "Snapmaker 3in1", "options": ["Snapmaker 3in1"]}, "Performance": {"Hardware": {"type": 0, "selected": "Use GPU", "options": ["Use CPU", "Use GPU"]}, "Resolution": {"type": 0, "selected": "20", "options": ["10", "20", "50", "100", "200", "1000"]}}}

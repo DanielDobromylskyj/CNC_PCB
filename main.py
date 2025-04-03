@@ -1,6 +1,7 @@
 from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
+import json
 import math
 import os
 import re
@@ -414,10 +415,10 @@ class PCB:
             "jog_speed(mm/min)": 1500,
             "power (%)": 0,
             "max_tool_width_at_4mm": 1,
+            "hole_tool_width": 1,
 
             "pcb_hole_outline_width": 0.2,
 
-            "generation_scale": 20,
             "separate_drill_gcode": True,
         }
 
@@ -455,10 +456,12 @@ class PCB:
 ; G-code START <<<"""
 
     def convert(self, settings: dict, log=None):
-        scale = settings["generation_scale"]
+        config = json.load(open("config.json"))
+
+        scale = config["Performance"]["Resolution"]["selected"]
 
         if not log:
-            log = ProgressLogger(9, "Processing")
+            log = ProgressLogger(8, "Processing")
 
         outline_points: list[tuple[float, float]] = [(command[1], command[2]) for command in self.outline.commands if command[0] == "draw"]
 
@@ -544,7 +547,10 @@ class PCB:
         log.log("Load")
         log.complete_single()
 
-        top_layer_outline = gpu_create_outline(log, top_layer, round((settings["max_tool_width_at_4mm"] * scale) / 2))
+        if config["Performance"]["Hardware"]["selected"] == "Use GPU":
+            top_layer_outline = gpu_create_outline(log, top_layer, round((settings["max_tool_width_at_4mm"] * scale) / 2))
+        else:
+            top_layer_outline = self.__create_outline(log, top_layer, round((settings["max_tool_width_at_4mm"] * scale) / 2))
 
         log.log("Outlined")
         log.complete_single()
@@ -575,6 +581,8 @@ class PCB:
             f.write(gcode)
 
         if settings["separate_drill_gcode"]:
+            tmp = settings["max_tool_width_at_4mm"]
+            settings["max_tool_width_at_4mm"] = settings["hole_tool_width"]
             empty_image = Image.new("1", (4, 4))
 
             gcode2 = self.__create_gcode_header(settings, max_xy, min_xy)
@@ -588,6 +596,8 @@ class PCB:
 
             with open("drill_holes.cnc", "w") as f:
                 f.write(gcode2)
+
+            settings["max_tool_width_at_4mm"] = tmp
 
             print("Output sent to 'drill_holes.cnc'")
 
