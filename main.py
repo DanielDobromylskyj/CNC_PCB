@@ -417,7 +417,8 @@ class PCB:
 
             "pcb_hole_outline_width": 0.2,
 
-            "generation_scale": 20
+            "generation_scale": 20,
+            "separate_drill_gcode": True,
         }
 
 
@@ -554,7 +555,15 @@ class PCB:
             "P_Though": [(x-min_xy[0], y-min_xy[1], diameter) for x, y, diameter in self.plated_though_holes.holes],
         }
 
-        gcode, eta = convert_image_to_gcode(log, gcode, holes, top_layer_outline, scale, settings, outline_points)
+        empty_holes = {
+            "via": [],
+            "NP_Though": [],
+            "P_Though": [],
+        }
+
+        holes_for_gcode = empty_holes if settings["separate_drill_gcode"] else holes
+
+        gcode, eta = convert_image_to_gcode(log, gcode, holes_for_gcode, top_layer_outline, scale, settings, outline_points)
 
         gcode = gcode.replace("FILE_TOTAL_LINE_COUNT", str(len(gcode.split("\n"))))
         gcode = gcode.replace("ESTIMATED_TIME", str(round(eta)))
@@ -564,6 +573,23 @@ class PCB:
 
         with open("output.cnc", "w") as f:
             f.write(gcode)
+
+        if settings["separate_drill_gcode"]:
+            empty_image = Image.new("1", (4, 4))
+
+            gcode2 = self.__create_gcode_header(settings, max_xy, min_xy)
+            gcode2, eta = convert_image_to_gcode(log, gcode2, holes, empty_image, scale, settings, outline_points)
+
+            gcode2 = gcode2.replace("FILE_TOTAL_LINE_COUNT", str(len(gcode2.split("\n"))))
+            gcode2 = gcode2.replace("ESTIMATED_TIME", str(round(eta)))
+
+            print(f"\nLine Count: {len(gcode2.split("\n"))}")
+            print(f"Estimated time: {round(eta)}s ({int(eta // 3600)}h:{int((eta - ((eta // 3600) * 3600)) // 60)}m:{round(eta - ((eta - ((eta // 3600) * 3600)) // 60) * 60)}s)")
+
+            with open("drill_holes.cnc", "w") as f:
+                f.write(gcode2)
+
+            print("Output sent to 'drill_holes.cnc'")
 
     @staticmethod
     def __create_outline(log, img, outline_width):  # GPU based option can be used now (gpu_path_generator.create_outline(log, img, width))

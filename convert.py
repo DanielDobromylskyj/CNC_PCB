@@ -39,14 +39,15 @@ def convert_image_to_gcode(log, header, holes, image, scale, settings, outline_p
                     for dx, dy in moves:
                         cx, cy = px + dx, py + dy
 
-                        pixel = image.getpixel((cx, cy))
+                        if (0 <= cx < image.size[0] and 0 <= cy < image.size[1]):
+                            pixel = image.getpixel((cx, cy))
 
-                        if pixel == 0:
-                            image.putpixel((cx, cy), 1)
-                            found_move = True
-                            px, py = cx, cy
-                            section.append((cx / scale, cy / scale))
-                            break
+                            if pixel == 0:
+                                image.putpixel((cx, cy), 1)
+                                found_move = True
+                                px, py = cx, cy
+                                section.append((cx / scale, cy / scale))
+                                break
 
                     if not found_move:
                         break
