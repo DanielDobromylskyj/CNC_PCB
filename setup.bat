@@ -13,7 +13,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 py -m pip --version
 
-py -m pip install matplotlib numpy pillow opencv-python pygame
+py -m pip install matplotlib numpy pillow opencv-python pygame pyopencl
 
 py -c "import shutil, site, os; src=os.path.join(site.getsitepackages()[0], 'lib', 'site-packages', 'matplotlib'); dest=os.getcwd(); shutil.copytree(src, os.path.join(dest, 'matplotlib'), dirs_exist_ok=True) if os.path.exists(src) else print(f'Folder not found: ', src)"
 
