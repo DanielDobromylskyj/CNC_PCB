@@ -375,6 +375,7 @@ def main(path=None):
 
 
         if config_menu_open:
+            pass
 
 
         pygame.display.flip()
