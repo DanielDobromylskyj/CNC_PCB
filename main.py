@@ -580,6 +580,31 @@ class PCB:
 ; Made by Daniel Dobromylskyj (https://www.github.com/DanielDobromylskyj)
 ; G-code START <<<"""
 
+    def create_silkscreen_unsafe(self, settings, xy_max, xy_min):
+        gcode = self.__create_gcode_header(settings, xy_max, xy_min)
+        gcode += f"\nG0 X0 Y0 Z5"
+
+        CUT_HEIGHT = -.1
+
+        x, y = 0, 0
+        for command in self.topSilkscreen.commands:
+            if command[0] == "draw":
+                _, x1, y1, x2, y2, width = command
+
+                if x != x1 or y != y1:
+                    gcode += f"\nG0 Z5"
+                    gcode += f"\nG0 X{x1} Y{-y1}"
+                    gcode += f"\nG1 Z{CUT_HEIGHT} F120"
+
+                gcode += f"\nG1 X{x2} Y{-y2} F120"
+                
+                x, y = x2, -y2
+
+        gcode += "\nM30"
+
+        with open("silkscreen.cnc", "w") as f:
+            f.write(gcode)
+
     def convert(self, settings: dict, log=None):
         config = json.load(open("config.json"))
 
@@ -592,6 +617,8 @@ class PCB:
 
         min_xy = min(outline_points, key=lambda p: p[0])[0] - 1, min(outline_points, key=lambda p: p[1])[1] - 1
         max_xy = max(outline_points, key=lambda p: p[0])[0] + 1, max(outline_points, key=lambda p: p[1])[1] + 1
+
+        self.create_silkscreen_unsafe(settings, max_xy, min_xy)
 
         gcode = self.__create_gcode_header(settings, max_xy, min_xy)
 

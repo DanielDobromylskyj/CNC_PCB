@@ -292,6 +292,7 @@ def process_pcb(pcb_var, pcb_prc, completion_progress_var, settings):
 
     threading.Thread(target=pcb_prc.start, args=(pcb_var.get(), settings)).start()
 
+
     start = time.time()
     while (start + 60) > time.time():  # stops updating display after 1min for performances sake
         completion_progress_var.set(pcb_prc.get_value())
