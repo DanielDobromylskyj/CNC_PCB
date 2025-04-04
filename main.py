@@ -1,6 +1,7 @@
 from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
+import copy
 import json
 import math
 import os
@@ -25,6 +26,48 @@ def read_coord(data, int_count, float_count):  # todo - make this have diff valu
     return float(f"{x_data[:-float_count]}.{x_data[-float_count:]}"), float(f"{y_data[:-float_count]}.{y_data[-float_count:]}")
 
 
+def smart_reader(data):
+    output = {}
+
+    started_reading_number = False
+    current_value = ""
+    current_name = ""
+
+    for char in list(data):
+        if char in "0123456789-":
+            started_reading_number = True
+            current_value += char
+
+        else:
+            if started_reading_number:
+                started_reading_number = False
+
+                if len(current_value) == 10:
+                    output[current_name] = current_value
+
+                elif len(current_value) > 3:
+                    output[current_name] = int(current_value) / 100000
+                else:
+                    output[current_name] = int(current_value)
+
+                current_value = ""
+                current_name = char
+            else:
+                current_name += char
+
+    if current_name != "" and current_value != "":
+        if len(current_value) == 10:
+            output[current_name] = current_value
+
+        elif len(current_value) > 3:
+            output[current_name] = int(current_value) / 100000
+        else:
+            output[current_name] = int(current_value)
+
+    return output
+
+
+
 def read_arc(data, int_count, float_count):
     x_data, other = data.replace("X", "").split("Y")
     y_data, other = other.split("I")
@@ -38,6 +81,19 @@ def read_arc(data, int_count, float_count):
         float(f"{j_data[:-float_count]}.{j_data[-float_count:]}"),
         int(d_data),
     )
+
+
+DEFAULT_DRAW_SHAPES = {
+                "C": {
+                    "primitive": "circle",
+                    "params": ["1", "$1"]
+                },
+
+                "R": {
+                    "primitive": "rect",
+                    "params": ["1", "$1", "$2"]
+                }
+            }
 
 class Drill_Gerber:
     def __init__(self, path, bodge_scale_factor=1):
@@ -122,17 +178,7 @@ class Mask_Gerber:
         with open(path, 'r') as f:
             gerber_data = f.read()
 
-            pad_shapes = {
-                "C": {
-                    "primitive": "circle",
-                    "params": ["1", "$1"]
-                },
-
-                "R": {
-                    "primitive": "rect",
-                    "params": ["1", "$1", "$2"]
-                }
-            }
+            pad_shapes = copy.deepcopy(DEFAULT_DRAW_SHAPES)
             pad_definitions = {}
             pad_locations = []
             current_definition_code = None
@@ -142,10 +188,6 @@ class Mask_Gerber:
 
             y_int_digits = 0
             y_float_digits = 0
-
-            # Regular expressions for parsing key sections
-            location_regex = r'X([\d]+)Y([\d]+)D(\d+)\*'  # To match pad locations and D-code
-
             # Split the data by lines
             lines = gerber_data.split('\n')
 
@@ -227,14 +269,15 @@ class Gerber:
         active_aperture = None
         x, y = None, None  # Track last position
 
+        pad_shapes = copy.deepcopy(DEFAULT_DRAW_SHAPES)
+        pad_definitions = {}
+        current_definition_code = None
+
         draw_mode = 0
 
-        #if not os.path.exists(filename):
-        #    return
-
         with open(filename, 'r') as file:
-            for line in file:
-                line = line.strip()
+            for raw_line in file:  # todo - Re implement without regex
+                line = raw_line.strip()
                 if '*' in line:
                     line = line.split('*')[0]  # Remove trailing '*'
 
@@ -244,33 +287,83 @@ class Gerber:
                     aperture_num = int(aperture_match.group(1))
                     aperture_size = float(aperture_match.group(2))
                     self.apertures[aperture_num] = aperture_size
-                    continue  # Skip to next line
 
 
-                if line.startswith("G"):
-                    draw_mode = int(line[1:3])
+                if line.startswith("%AM"):
+                    pad_shape = raw_line.split("*")[0][3:]
 
-                # Match coordinates (e.g., X12345Y67890D01)
-                match = re.search(r'X([-]?\d+)Y([-]?\d+)(?:D0([123]))?', line)
-                if match:
-                    new_x, new_y = int(match.group(1))/100000, int(match.group(2))/100000
-                    d_code = match.group(3)
+                    chunks = raw_line.split("*")[1].split(",")
 
-                    # Use the active aperture width, default to 0.2mm if unknown
-                    width = self.apertures.get(active_aperture, 0.2)
+                    pad_shapes[pad_shape] = {
+                        "primitive": chunks[0],
+                        "params": chunks[1:]
+                    }
 
-                    if d_code == "1" and x is not None and y is not None:  # Draw line (D01)
+                if raw_line.startswith('%ADD'):
+                    pad_num = line[4:6]
+
+                    chunks = line.split("*")[0].split(",")
+
+                    # Store the pad definition with pad number as the key
+                    pad_definitions[pad_num] = {
+                        "shape": chunks[0][len("%ADDXY"):],
+                        "params": chunks[1].split("X") if len(chunks) > 1 else []
+                    }
+
+
+                if line.startswith("D"):
+                    code = line[1:3]
+
+                    if code in pad_definitions:
+                        current_definition_code = code
+
+                values = smart_reader(line)
+
+                if values:
+                    if "G" in values:
+                        if values["G"] == 4:
+                            continue # comment
+
+                        draw_mode = values["G"]
+
+                    if "X" in values and "Y" in values:
+                        d_mode = values["D"] if "D" in values else -1
+
+                        width = self.apertures.get(active_aperture, 0.2)  # fix me
+
                         if draw_mode == 1:
-                            self.commands.append(('draw', x, y, new_x, new_y, width))
-                        else:
-                            raise Exception("Draw mode not defined")
+                            if d_mode == 2:
+                                self.commands.append(('move', values["X"], values["Y"]))
 
-                    elif d_code == "2" or x is None or y is None:  # Move (D02)
-                        self.commands.append(('move', new_x, new_y))
+                            elif d_mode == 1:
+                                self.commands.append(('draw',  x, y, values["X"], values["Y"], width))
 
-                    elif d_code is None:
-                        if draw_mode == 2:
-                            x_end, y_end, i, j, d = read_arc(line, 4, 5)
+                            elif d_mode == 3:
+                                x, y = values["X"], values["Y"]
+                                definition = pad_definitions[current_definition_code]
+
+                                if current_definition_code in pad_shapes:
+                                    shape = pad_shapes[current_definition_code]
+                                else:
+                                    shape = pad_shapes[definition["shape"]]
+
+                                points = PCB.convert_shape_to_lines(shape, definition["params"])
+                                points = [((x + px), (y + py)) for px, py in points]
+
+                                ox, oy = points[0]
+                                self.commands.append(('move', ox, oy))
+
+                                for point in points:
+                                    self.commands.append(('draw',  ox, oy, point[0], point[1], width))
+                                    ox, oy = point
+
+
+
+
+                            x, y = values["X"], values["Y"]
+
+                        elif draw_mode == 2:  # arc
+                            i, j, d = values["I"], values["J"], values["D"]
 
                             start_x = x
                             start_y = y
@@ -281,9 +374,39 @@ class Gerber:
                             radius = math.sqrt(i ** 2 + j ** 2)
 
                             start_angle = math.atan2(start_y - center_y, start_x - center_x)
-                            end_angle = math.atan2(y_end - center_y, x_end - center_x)
+                            end_angle = math.atan2(values["Y"] - center_y, values["X"] - center_x)
 
-                            if end_angle < start_angle:
+                            if end_angle >= start_angle:
+                                end_angle -= 2 * math.pi
+
+                            angle_step = (end_angle - start_angle) / 20
+
+                            # Generate the points along the arc using list comprehension
+                            arc_points = [(center_x + radius * math.cos(start_angle + i * angle_step),
+                                           center_y + radius * math.sin(start_angle + i * angle_step))
+                                          for i in range(20 + 1)]
+
+                            x, y = arc_points[-1]
+                            for i, point in enumerate(arc_points[1:]):
+                                self.commands.append(
+                                    ('draw', point[0], point[1], arc_points[i][0], arc_points[i][1], width))
+
+                        elif draw_mode == 3:  # arc
+                            i, j, d = values["I"], values["J"], values["D"]
+
+                            start_x = x
+                            start_y = y
+
+                            center_x = start_x + i
+                            center_y = start_y + j
+
+                            radius = math.sqrt(i ** 2 + j ** 2)
+
+                            start_angle = math.atan2(start_y - center_y, start_x - center_x)
+                            end_angle = math.atan2(values["Y"] - center_y, values["X"] - center_x)
+
+
+                            if end_angle <= start_angle:
                                 end_angle += 2 * math.pi
 
                             angle_step = (end_angle - start_angle) / 20
@@ -293,12 +416,14 @@ class Gerber:
                                            center_y + radius * math.sin(start_angle + i * angle_step))
                                           for i in range(20 + 1)]
 
-                            new_x, new_y = arc_points[-1]
+                            x, y = arc_points[-1]
                             for i, point in enumerate(arc_points[1:]):
                                 self.commands.append(
                                     ('draw', point[0], point[1], arc_points[i][0], arc_points[i][1], width))
 
-                    x, y = new_x, new_y  # Update position
+                        else:
+                            x, y = values["X"], values["Y"]
+
 
 
 
@@ -322,13 +447,13 @@ class PCB:
 
         outline_points: list[tuple[float, float]] = [(command[1], command[2]) for command in self.outline.commands if
                                                      command[0] == "draw"]
-
         min_xy = min(outline_points, key=lambda p: p[0])[0] - 1, min(outline_points, key=lambda p: p[1])[1] - 1
         max_xy = max(outline_points, key=lambda p: p[0])[0] + 1, max(outline_points, key=lambda p: p[1])[1] + 1
 
         self.size = [max_xy[0] - min_xy[0], max_xy[1] - min_xy[1]]
 
-    def convert_shape_to_lines(self, shape, def_params):
+    @staticmethod
+    def convert_shape_to_lines(shape, def_params):
         params = []
         for i, param in enumerate(shape["params"]):
             if param.startswith("$"):
@@ -386,7 +511,7 @@ class PCB:
                 return [(r*math.cos(a), r*math.sin(a)) for a in [i*(2*math.pi/50) for i in range(50)]]
 
         elif shape["primitive"] == "rect":
-            return self.convert_shape_to_lines({"primitive": "21", "params": ["1", "$1", "$2", "0", "0", "0"]}, params)
+            return PCB.convert_shape_to_lines({"primitive": "21", "params": ["1", "$1", "$2", "0", "0", "0"]}, params)
 
         elif shape["primitive"] == "4":
             visible, vert_count = params[:2]
