@@ -11,9 +11,8 @@ def travel_time(xyz1, xyz2, speed):
 def convert_image_to_gcode(log, header, holes, image, scale, settings, outline_points):
     gcode = header
 
-    # I'm unsure why I use 600 to convert from min to sec, but it gives a better output.
-    jog_speed = settings["jog_speed(mm/min)"] / 600  # per sec
-    work_speed = settings["work_speed(mm/min)"] / 600  # per sec
+    jog_speed = 1 / (settings["jog_speed(mm/min)"] / 60)  # per sec
+    work_speed = 1 / (settings["work_speed(mm/min)"] / 60)  # per sec
     estimated_time = 0
 
     gcode += "\nG90"

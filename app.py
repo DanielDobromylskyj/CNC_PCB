@@ -217,9 +217,18 @@ class pcb_processor:
         self.loaded = False
         self.prev_pcb = Variable(None)
 
-        self.font = pygame.sysfont.SysFont("monospace", 20)
+        self.font = pygame.sysfont.SysFont("monospace", 16)
         self.generation_data = {}
         self.gen_button_rect = None
+
+        setting_json = json.load(open("pcb_settings.json", "r"))
+        self.settings = {
+            key: [setting_json[key][0], False, None]
+            for key in setting_json.keys()
+        }
+
+    def save(self):
+        json.dump(self.settings, open("pcb_settings.json", "w"))
 
     def load(self):
         self.surface.fill((200,200,200))
@@ -238,6 +247,28 @@ class pcb_processor:
                     width=2
                 )
                 self.surface.blit(text, (10, 10))
+
+            dy = 35
+            for i, setting in enumerate(self.settings.keys()):
+                text = self.font.render(setting, True, (0, 0, 0))
+                self.surface.blit(text, (10, dy))
+                dy += text.get_height() + 1
+
+                if type(self.settings[setting][0]) is bool:
+                    input_field = pygame.Rect(10, dy, 60, 20)
+                else:
+                    input_field = pygame.Rect(10, dy, 160, 20)
+
+                self.settings[setting][2] = input_field
+                pygame.draw.rect(
+                    self.surface,
+                    (190, 190, 190),
+                    input_field,
+                    width=2
+                )
+
+                dy += input_field.h + 4
+
 
 
 

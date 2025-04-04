@@ -583,7 +583,7 @@ class PCB:
     def convert(self, settings: dict, log=None):
         config = json.load(open("config.json"))
 
-        scale = config["Performance"]["Resolution"]["selected"]
+        scale = int(config["Performance"]["Resolution"]["selected"])
 
         if not log:
             log = ProgressLogger(8, "Processing")

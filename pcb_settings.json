@@ -1,0 +1,8 @@
+{
+  "Trace Tool Width": [0.2, false, null],
+  "Hole Tool Width": [2, false, null],
+  "Hole Outline Width": [0.2, false, null],
+  "Separate Gcode": [true, false, null],
+  "Work Speed": [120, false, null],
+  "Travel Speed": [1500, false, null]
+}
