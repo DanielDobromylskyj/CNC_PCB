@@ -211,6 +211,7 @@ class ProgressBar:
 class pcb_processor:
     def __init__(self, width, height, pcb_var):
         self.surface = pygame.Surface((width, height))
+        self.static_surface = pygame.Surface((width, height))
         self.width = width
         self.height = height
         self.pcb_var = pcb_var
@@ -228,10 +229,10 @@ class pcb_processor:
         }
 
     def save(self):
-        json.dump(self.settings, open("pcb_settings.json", "w"))
+        json.dump({setting: [self.settings[setting][0], False, None] for setting in self.settings}, open("pcb_settings.json", "w"))
 
     def load(self):
-        self.surface.fill((200,200,200))
+        self.static_surface.fill((200,200,200))
 
         pcb = self.pcb_var.get()
         if pcb is not None:
@@ -241,31 +242,32 @@ class pcb_processor:
                 self.gen_button_rect.topleft = (10, 10)
 
                 pygame.draw.rect(
-                    self.surface,
+                    self.static_surface,
                     (0, 0, 0),
                     self.gen_button_rect,
                     width=2
                 )
-                self.surface.blit(text, (10, 10))
+                self.static_surface.blit(text, (10, 10))
 
             dy = 35
             for i, setting in enumerate(self.settings.keys()):
                 text = self.font.render(setting, True, (0, 0, 0))
-                self.surface.blit(text, (10, dy))
+                self.static_surface.blit(text, (10, dy))
                 dy += text.get_height() + 1
 
                 if type(self.settings[setting][0]) is bool:
-                    input_field = pygame.Rect(10, dy, 60, 20)
+                    input_field = pygame.Rect(10, dy, 40, 20)
                 else:
                     input_field = pygame.Rect(10, dy, 160, 20)
 
+                    pygame.draw.rect(
+                        self.static_surface,
+                        (190, 190, 190),
+                        input_field,
+                        width=2
+                    )
+
                 self.settings[setting][2] = input_field
-                pygame.draw.rect(
-                    self.surface,
-                    (190, 190, 190),
-                    input_field,
-                    width=2
-                )
 
                 dy += input_field.h + 4
 
@@ -279,6 +281,50 @@ class pcb_processor:
         if self.prev_pcb.get() != self.pcb_var.get():
             self.load()
             self.prev_pcb.set(self.pcb_var.get())
+
+        self.surface.blit(self.static_surface, (0, 0))
+
+        if self.pcb_var.get():
+            dy = 35
+            for i, setting in enumerate(self.settings.keys()):
+                text = self.font.render(setting, True, (0, 0, 0))
+                dy += text.get_height() + 1
+
+                if type(self.settings[setting][0]) is bool:
+                    background_colour = (50, 50, 250) if self.settings[setting][0] else (100, 100, 100)
+                    input_field = pygame.Rect(10, dy, 40, 20)
+
+                    pygame.draw.rect(
+                        self.surface,
+                        background_colour,
+                        input_field,
+                        border_radius=10
+                    )
+                    pygame.draw.rect(
+                        self.surface,
+                        (150, 150, 150),
+                        input_field,
+                        border_radius=10,
+                        width=2
+                    )
+
+                    cx = 40 if self.settings[setting][0] else 20
+
+                    pygame.draw.circle(
+                        self.surface,
+                        (230, 230, 230),
+                        (cx, dy + 10),
+                        radius=7,
+                    )
+                else:
+                    input_field = pygame.Rect(10, dy, 160, 20)
+
+                    text = self.font.render(str(self.settings[setting][0]), True, (0, 0, 0))
+                    self.surface.blit(text, (11, dy+2))
+
+
+                dy += input_field.h + 4
+
 
 def open_file(pcb_var):
     path = askdirectory(title="PCB Gerber Selector")
@@ -436,6 +482,22 @@ def main(path=None):
 
                         if click_config:
                             continue
+
+                    for setting in pcb_prc_display.settings.keys():
+                        value, is_selected, button = pcb_prc_display.settings[setting]
+                        if not button:
+                            continue
+
+                        if button.collidepoint((x, y - 20)):
+                            if type(value) is bool:
+                                pcb_prc_display.settings[setting][0] = not value
+                                pcb_prc_display.save()
+
+                            else:
+                                for setting in pcb_prc_display.settings.keys():
+                                    pcb_prc_display.settings[setting][1] = False
+
+                                pcb_prc_display.settings[setting][1] = True
 
                     if (x > 200) and (y > 20):
                         rotating_pcb = True
