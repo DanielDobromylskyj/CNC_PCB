@@ -607,6 +607,16 @@ class PCB:
 
     def convert(self, settings: dict, log=None):
         config = json.load(open("config.json"))
+        loaded_settings = json.load(open("pcb_settings.json"))
+
+        settings["max_tool_width_at_4mm"] = float(loaded_settings["Trace Tool Width"][0])
+        settings["hole_tool_width"] = float(loaded_settings["Hole Tool Width"][0])
+        settings["separate_drill_gcode"] = loaded_settings["Separate Gcode"][0]
+        settings["work_speed(mm/min)"] = float(loaded_settings["Work Speed"][0])
+        settings["jog_speed(mm/min)"] = float(loaded_settings["Travel Speed"][0])
+        settings["pcb_hole_outline_width"] = float(loaded_settings["Hole Outline Width"][0])
+
+        #settings[""] = loaded_settings[""][0]
 
         scale = int(config["Performance"]["Resolution"]["selected"])
 

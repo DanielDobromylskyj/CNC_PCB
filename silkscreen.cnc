@@ -18,8 +18,8 @@
 ;min_y(mm): -1
 ;min_b(mm): 0
 ;min_z(mm): -3.5
-;work_speed(mm/minute): 60
-;jog_speed(mm/minute): 1500
+;work_speed(mm/minute): 240.0
+;jog_speed(mm/minute): 1500.0
 ;power(%): 0
 ;work_size_x: 400
 ;work_size_y: 400

@@ -7,7 +7,7 @@
 ;renderMethod: line
 ;max_power: 255
 ;file_total_lines: 3942
-;estimated_time(s): 433
+;estimated_time(s): 113
 ;is_rotate: false
 ;diameter: 0
 ;max_x(mm): 40.116
@@ -18,8 +18,8 @@
 ;min_y(mm): -1
 ;min_b(mm): 0
 ;min_z(mm): -3.5
-;work_speed(mm/minute): 60
-;jog_speed(mm/minute): 1500
+;work_speed(mm/minute): 240.0
+;jog_speed(mm/minute): 1500.0
 ;power(%): 0
 ;work_size_x: 400
 ;work_size_y: 400
@@ -31,7 +31,7 @@
 G90
 G21
 G0 X0 Y0 Z8
-G1 F60
+G1 F240.0
 G0 X1.35 Y6.0 Z5
 M3 P100
 G1 X1.35 Y6.0 Z-0.4

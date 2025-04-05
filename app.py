@@ -10,6 +10,9 @@ import main as main_pcb
 from logger import ProgressLogger
 
 
+# I am sorry for this fucking mess. I will try rewrite it once this version has a few more features working
+
+
 class LoggerCapture(ProgressLogger):
     def __init__(self, size, blocks=40):
         super().__init__(size, blocks=blocks)
@@ -430,6 +433,7 @@ def main(path=None):
     pcb_rotation_scale = 0.5
 
     config_menu_open = False
+    editing_setting = False
 
     config_path = []
     config_menu = json.load(open("config.json", "r"))
@@ -447,6 +451,7 @@ def main(path=None):
                 running = False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
+                editing_setting = False
                 if event.button == 1:  # left click
                     x, y = event.pos
 
@@ -485,6 +490,8 @@ def main(path=None):
 
                     for setting in pcb_prc_display.settings.keys():
                         value, is_selected, button = pcb_prc_display.settings[setting]
+
+                        button: None | pygame.Rect
                         if not button:
                             continue
 
@@ -494,10 +501,11 @@ def main(path=None):
                                 pcb_prc_display.save()
 
                             else:
-                                for setting in pcb_prc_display.settings.keys():
-                                    pcb_prc_display.settings[setting][1] = False
+                                for setting2 in pcb_prc_display.settings.keys():
+                                    pcb_prc_display.settings[setting2][1] = False
 
                                 pcb_prc_display.settings[setting][1] = True
+                                editing_setting = True
 
                     if (x > 200) and (y > 20):
                         rotating_pcb = True
@@ -530,6 +538,23 @@ def main(path=None):
                 if event.button == 1:
                     if rotating_pcb:
                         rotating_pcb = False
+
+            if event.type == pygame.KEYDOWN:
+                if editing_setting:
+                    for setting in pcb_prc_display.settings:
+                        value, is_editing, button = pcb_prc_display.settings[setting]
+
+                        if is_editing:
+                            try:
+                                if event.unicode in "-.0123456789":
+                                    pcb_prc_display.settings[setting][0] = value + event.unicode
+
+                                if event.key == pygame.K_BACKSPACE:
+                                    pcb_prc_display.settings[setting][0] = value[:-1]
+
+                                pcb_prc_display.save()
+                            except IndexError:
+                                pass
 
         screen.fill((200,200,200))
 
