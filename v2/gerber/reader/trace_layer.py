@@ -52,8 +52,9 @@ class TraceLayer:
             values = extract_line_data(line)
 
             if values:
-                if "G" in values and values["G"] == "04":
-                    continue  # Comment
+                if "G" in values:
+                    if values["G"] == "04":
+                        continue  # Comment
 
                     g_mode = values["G"]
 
