@@ -43,6 +43,10 @@ class TraceLayer:
                 continue
 
             if line.startswith("%FS"):
+                self.__set_format_spec(line)
+
+            if line.startswith("%MO"):
+                self.__set_mode_units(line)
 
 
             values = extract_line_data(line)
