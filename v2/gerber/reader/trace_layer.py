@@ -2,6 +2,7 @@ from .reader import extract_line_data
 from .value_parser import ValueParser
 from .primatives import ApertureMacroManager, primitive_to_lines
 
+import math
 
 
 class TraceLayer:
@@ -70,7 +71,6 @@ class TraceLayer:
                         continue  # Comment
 
                     g_mode = values["G"]
-
 
 
                 if "D" in values and values["D"] in self.aperture_macros:
@@ -161,4 +161,13 @@ class TraceLayer:
 
                         angle_step = (end_angle - start_angle) / 20
 
+                        # Generate the points along the arc using list comprehension
+                        arc_points = [(center_x + radius * math.cos(start_angle + i * angle_step),
+                                       center_y + radius * math.sin(start_angle + i * angle_step))
+                                      for i in range(20 + 1)]
+
+                        last_x, last_y = arc_points[-1]
+                        for i, point in enumerate(arc_points[1:]):
+                            self.commands.append(
+                                ('draw', point[0], point[1], arc_points[i][0], arc_points[i][1], width))
 
