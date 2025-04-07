@@ -7,19 +7,19 @@
 ;renderMethod: line
 ;max_power: 255
 ;file_total_lines: 176
-;estimated_time(s): 276
+;estimated_time(s): 162
 ;is_rotate: false
 ;diameter: 0
 ;max_x(mm): 40.116
 ;max_y(mm): 27.162
 ;max_z(mm): 80
 ;max_b(mm): 0
-;min_x(mm): -1.0
-;min_y(mm): -1.0
+;min_x(mm): -1
+;min_y(mm): -1
 ;min_b(mm): 0
 ;min_z(mm): -3.5
-;work_speed(mm/minute): 60
-;jog_speed(mm/minute): 1500
+;work_speed(mm/minute): 240.0
+;jog_speed(mm/minute): 1500.0
 ;power(%): 0
 ;work_size_x: 400
 ;work_size_y: 400
@@ -31,7 +31,7 @@
 G90
 G21
 G0 X0 Y0 Z8
-G1 F60
+G1 F240.0
 G0 X0.05 Y0.0 Z5
 M3 P100
 G1 X0.05 Y0.0 Z-0.4
@@ -164,13 +164,13 @@ G0 X5.445 Y7.831 Z1
 G1 X5.445 Y7.831 Z-1
 G0 X5.445 Y7.831 Z1
 M5
-G0 X0.0 Y26.162 Z5
+G0 X0 Y26.162 Z5
 M3 P100
-G1 X0.0 Y26.162 Z-1
+G1 X0 Y26.162 Z-1
 G1 X39.116 Y26.162 Z-1
-G1 X39.116 Y0.0 Z-1
-G1 X0.0 Y0.0 Z-1
-G1 X0.0 Y26.162 Z-1
+G1 X39.116 Y0 Z-1
+G1 X0 Y0 Z-1
+G1 X0 Y26.162 Z-1
 M5
-G1 X0.0 Y0.0 Z5
+G1 X0 Y0 Z5
 M30

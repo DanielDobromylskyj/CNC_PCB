@@ -10,6 +10,9 @@ import main as main_pcb
 from logger import ProgressLogger
 
 
+# I am sorry for this fucking mess. I will try rewrite it once this version has a few more features working
+
+
 class LoggerCapture(ProgressLogger):
     def __init__(self, size, blocks=40):
         super().__init__(size, blocks=blocks)
@@ -211,18 +214,28 @@ class ProgressBar:
 class pcb_processor:
     def __init__(self, width, height, pcb_var):
         self.surface = pygame.Surface((width, height))
+        self.static_surface = pygame.Surface((width, height))
         self.width = width
         self.height = height
         self.pcb_var = pcb_var
         self.loaded = False
         self.prev_pcb = Variable(None)
 
-        self.font = pygame.sysfont.SysFont("monospace", 20)
+        self.font = pygame.sysfont.SysFont("monospace", 16)
         self.generation_data = {}
         self.gen_button_rect = None
 
+        setting_json = json.load(open("pcb_settings.json", "r"))
+        self.settings = {
+            key: [setting_json[key][0], False, None]
+            for key in setting_json.keys()
+        }
+
+    def save(self):
+        json.dump({setting: [self.settings[setting][0], False, None] for setting in self.settings}, open("pcb_settings.json", "w"))
+
     def load(self):
-        self.surface.fill((200,200,200))
+        self.static_surface.fill((200,200,200))
 
         pcb = self.pcb_var.get()
         if pcb is not None:
@@ -232,12 +245,35 @@ class pcb_processor:
                 self.gen_button_rect.topleft = (10, 10)
 
                 pygame.draw.rect(
-                    self.surface,
+                    self.static_surface,
                     (0, 0, 0),
                     self.gen_button_rect,
                     width=2
                 )
-                self.surface.blit(text, (10, 10))
+                self.static_surface.blit(text, (10, 10))
+
+            dy = 35
+            for i, setting in enumerate(self.settings.keys()):
+                text = self.font.render(setting, True, (0, 0, 0))
+                self.static_surface.blit(text, (10, dy))
+                dy += text.get_height() + 1
+
+                if type(self.settings[setting][0]) is bool:
+                    input_field = pygame.Rect(10, dy, 40, 20)
+                else:
+                    input_field = pygame.Rect(10, dy, 160, 20)
+
+                    pygame.draw.rect(
+                        self.static_surface,
+                        (190, 190, 190),
+                        input_field,
+                        width=2
+                    )
+
+                self.settings[setting][2] = input_field
+
+                dy += input_field.h + 4
+
 
 
 
@@ -248,6 +284,50 @@ class pcb_processor:
         if self.prev_pcb.get() != self.pcb_var.get():
             self.load()
             self.prev_pcb.set(self.pcb_var.get())
+
+        self.surface.blit(self.static_surface, (0, 0))
+
+        if self.pcb_var.get():
+            dy = 35
+            for i, setting in enumerate(self.settings.keys()):
+                text = self.font.render(setting, True, (0, 0, 0))
+                dy += text.get_height() + 1
+
+                if type(self.settings[setting][0]) is bool:
+                    background_colour = (50, 50, 250) if self.settings[setting][0] else (100, 100, 100)
+                    input_field = pygame.Rect(10, dy, 40, 20)
+
+                    pygame.draw.rect(
+                        self.surface,
+                        background_colour,
+                        input_field,
+                        border_radius=10
+                    )
+                    pygame.draw.rect(
+                        self.surface,
+                        (150, 150, 150),
+                        input_field,
+                        border_radius=10,
+                        width=2
+                    )
+
+                    cx = 40 if self.settings[setting][0] else 20
+
+                    pygame.draw.circle(
+                        self.surface,
+                        (230, 230, 230),
+                        (cx, dy + 10),
+                        radius=7,
+                    )
+                else:
+                    input_field = pygame.Rect(10, dy, 160, 20)
+
+                    text = self.font.render(str(self.settings[setting][0]), True, (0, 0, 0))
+                    self.surface.blit(text, (11, dy+2))
+
+
+                dy += input_field.h + 4
+
 
 def open_file(pcb_var):
     path = askdirectory(title="PCB Gerber Selector")
@@ -260,6 +340,7 @@ def process_pcb(pcb_var, pcb_prc, completion_progress_var, settings):
     pcb_prc.reset()
 
     threading.Thread(target=pcb_prc.start, args=(pcb_var.get(), settings)).start()
+
 
     start = time.time()
     while (start + 60) > time.time():  # stops updating display after 1min for performances sake
@@ -352,6 +433,7 @@ def main(path=None):
     pcb_rotation_scale = 0.5
 
     config_menu_open = False
+    editing_setting = False
 
     config_path = []
     config_menu = json.load(open("config.json", "r"))
@@ -369,6 +451,7 @@ def main(path=None):
                 running = False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
+                editing_setting = False
                 if event.button == 1:  # left click
                     x, y = event.pos
 
@@ -405,6 +488,25 @@ def main(path=None):
                         if click_config:
                             continue
 
+                    for setting in pcb_prc_display.settings.keys():
+                        value, is_selected, button = pcb_prc_display.settings[setting]
+
+                        button: None | pygame.Rect
+                        if not button:
+                            continue
+
+                        if button.collidepoint((x, y - 20)):
+                            if type(value) is bool:
+                                pcb_prc_display.settings[setting][0] = not value
+                                pcb_prc_display.save()
+
+                            else:
+                                for setting2 in pcb_prc_display.settings.keys():
+                                    pcb_prc_display.settings[setting2][1] = False
+
+                                pcb_prc_display.settings[setting][1] = True
+                                editing_setting = True
+
                     if (x > 200) and (y > 20):
                         rotating_pcb = True
 
@@ -436,6 +538,23 @@ def main(path=None):
                 if event.button == 1:
                     if rotating_pcb:
                         rotating_pcb = False
+
+            if event.type == pygame.KEYDOWN:
+                if editing_setting:
+                    for setting in pcb_prc_display.settings:
+                        value, is_editing, button = pcb_prc_display.settings[setting]
+
+                        if is_editing:
+                            try:
+                                if event.unicode in "-.0123456789":
+                                    pcb_prc_display.settings[setting][0] = value + event.unicode
+
+                                if event.key == pygame.K_BACKSPACE:
+                                    pcb_prc_display.settings[setting][0] = value[:-1]
+
+                                pcb_prc_display.save()
+                            except IndexError:
+                                pass
 
         screen.fill((200,200,200))
 
