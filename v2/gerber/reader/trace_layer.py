@@ -78,7 +78,7 @@ class TraceLayer:
 
 
                 if "X" in values and "Y" in values:
-                    x_pos, y_pos = values["X"], values["Y"]
+                    x_pos, y_pos = self.x_value_parser.parse_value(values["X"]), self.y_value_parser.parse_value(values["Y"])
                     active_aperture = self.aperture_macros.get_aperture()
 
                     width = 0.2  # default trace width
@@ -96,14 +96,12 @@ class TraceLayer:
 
 
                         elif values["D"] == "03":  # blit aperture
-                            definition = self.aperture_macros.macro_definitions[active_aperture["shape"]]
-
                             if active_aperture["shape"] in self.aperture_macros.macro_shapes:
                                 shape = self.aperture_macros.macro_shapes[active_aperture["shape"]]
                             else:
-                                shape = self.aperture_macros.macro_shapes[definition["shape"]]
+                                shape = self.aperture_macros.macro_shapes[active_aperture["shape"]]
 
-                            aperture_points = primitive_to_lines(shape, definition["params"])
+                            aperture_points = primitive_to_lines(shape, active_aperture["params"])
                             aperture_points = [(x_pos + px, y_pos + py) for px, py in aperture_points]
 
                             self.commands.append(
