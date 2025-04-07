@@ -55,4 +55,49 @@ class TraceLayer:
                 if "G" in values and values["G"] == "04":
                     continue  # Comment
 
+                    g_mode = values["G"]
+
+
+
+                if "D" in values and values["D"] in self.aperture_macros:
+                    self.aperture_macros.set_aperture(values["D"])
+
+
+                if "X" in values and "Y" in values:
+                    x_pos, y_pos = values["X"], values["Y"]
+                    active_aperture = self.aperture_macros.get_aperture()
+
+                    width = 0.2  # default trace width
+                    if active_aperture["shape"] == "C":
+                        width = active_aperture["params"][0]
+
+                    if g_mode == "01":  # straight lines
+                        if values["D"] == "01":
+                            self.commands.append(
+                                ("line", last_x, last_y, x_pos, y_pos, width)
+                            )
+
+                        elif values["D"] == "02":  # move, dont draw
+                            last_x, last_y = x_pos, y_pos
+
+
+                        elif values["D"] == "03":  # blit aperture
+                            definition = self.aperture_macros.macro_definitions[active_aperture["shape"]]
+
+                            if active_aperture["shape"] in self.aperture_macros.macro_shapes:
+                                shape = self.aperture_macros.macro_shapes[active_aperture["shape"]]
+                            else:
+                                shape = self.aperture_macros.macro_shapes[definition["shape"]]
+
+                            aperture_points = primitive_to_lines(shape, definition["params"])
+                            aperture_points = [(x_pos + px, y_pos + py) for px, py in aperture_points]
+
+                            self.commands.append(
+                                ("blit", aperture_points)
+                            )
+
+                        else:
+                            raise Exception(f"Unknown value for D when parsing a line.'{values["D"]}'")
+
+
 
