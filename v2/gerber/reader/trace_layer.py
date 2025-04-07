@@ -48,6 +48,12 @@ class TraceLayer:
             if line.startswith("%MO"):
                 self.__set_mode_units(line)
 
+            if line.startswith("%AM"):
+                self.aperture_macros.define_aperture_macro(line)
+
+            if line.startswith('%ADD'):
+                self.aperture_macros.define_aperture(line)
+
 
             values = extract_line_data(line)
 
