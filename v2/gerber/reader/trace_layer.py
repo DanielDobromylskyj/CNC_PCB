@@ -113,5 +113,52 @@ class TraceLayer:
                         else:
                             raise Exception(f"Unknown value for D when parsing a line.'{values["D"]}'")
 
+                    elif g_mode == "02":  # arc
+                        i, j, d = values["I"], values["J"], values["D"]
+
+                        start_x = last_x
+                        start_y = last_y
+
+                        center_x = start_x + i
+                        center_y = start_y + j
+
+                        radius = math.sqrt(i ** 2 + j ** 2)
+
+                        start_angle = math.atan2(start_y - center_y, start_x - center_x)
+                        end_angle = math.atan2(values["Y"] - center_y, values["X"] - center_x)
+
+                        if end_angle >= start_angle:
+                            end_angle -= 2 * math.pi
+
+                        angle_step = (end_angle - start_angle) / 20
+
+                        # Generate the points along the arc using list comprehension
+                        arc_points = [(center_x + radius * math.cos(start_angle + i * angle_step),
+                                       center_y + radius * math.sin(start_angle + i * angle_step))
+                                      for i in range(20 + 1)]
+
+                        last_x, last_y = arc_points[-1]
+                        for i, point in enumerate(arc_points[1:]):
+                            self.commands.append(
+                                ('draw', point[0], point[1], arc_points[i][0], arc_points[i][1], width))
+
+                    elif g_mode == "03":  # arc (opposite rotation)
+                        i, j, d = values["I"], values["J"], values["D"]
+
+                        start_x = last_x
+                        start_y = last_y
+
+                        center_x = start_x + i
+                        center_y = start_y + j
+
+                        radius = math.sqrt(i ** 2 + j ** 2)
+
+                        start_angle = math.atan2(start_y - center_y, start_x - center_x)
+                        end_angle = math.atan2(values["Y"] - center_y, values["X"] - center_x)
+
+                        if end_angle <= start_angle:
+                            end_angle += 2 * math.pi
+
+                        angle_step = (end_angle - start_angle) / 20
 
 
