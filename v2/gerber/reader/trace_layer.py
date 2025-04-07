@@ -1,10 +1,14 @@
 from .reader import extract_line_data
 from .value_parser import ValueParser
+from .primatives import ApertureMacroManager, primitive_to_lines
+
 
 
 class TraceLayer:
     def __init__(self, fp):
         self.commands = []
+
+        self.aperture_macros = ApertureMacroManager()
 
         # Default values (assumed)
         self.x_value_parser = ValueParser(True, True, 4, 5)
@@ -17,7 +21,7 @@ class TraceLayer:
         is_abs = line[4] == "A"
 
         x_pre, x_aft = int(line[6]), int(line[7])
-        y_pre, y_aft = int(line[8]), int(line[9])
+        y_pre, y_aft = int(line[9]), int(line[10])
 
         self.x_value_parser.leading_zeros = leading_zeros
         self.y_value_parser.leading_zeros = leading_zeros
@@ -38,6 +42,9 @@ class TraceLayer:
         self.y_value_parser.units = units
 
     def __load(self, fp) -> None:
+        g_mode = None
+        last_x, last_y = 0, 0
+
         for line in fp.read().split("\n"):
             if line.startswith(";"):
                 continue
