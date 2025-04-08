@@ -11,6 +11,9 @@ class TraceLayer:
 
         self.aperture_macros = ApertureMacroManager()
 
+        self.min_xy = [math.inf, math.inf]
+        self.max_xy = [-math.inf, -math.inf]
+
         # Default values (assumed)
         self.x_value_parser = ValueParser(True, True, 4, 5)
         self.y_value_parser = ValueParser(True, True, 4, 5)
@@ -83,14 +86,18 @@ class TraceLayer:
 
                     width = 0.2  # default trace width
                     if active_aperture["shape"] == "C":
-                        width = active_aperture["params"][0]
+                        width = float(active_aperture["params"][0])
+
+                    if x_pos - (width / 2) < self.min_xy[0]: self.min_xy[0] = x_pos - (width / 2)
+                    if x_pos + (width / 2) > self.max_xy[0]: self.max_xy[0] = x_pos + (width / 2)
+                    if y_pos - (width / 2) < self.min_xy[1]: self.min_xy[1] = y_pos - (width / 2)
+                    if y_pos + (width / 2) > self.max_xy[1]: self.max_xy[1] = y_pos + (width / 2)
 
                     if g_mode == "01":  # straight lines
                         if values["D"] == "01":
                             self.commands.append(
                                 ("line", last_x, last_y, x_pos, y_pos, width)
                             )
-
                         elif values["D"] == "02":  # move, dont draw
                             last_x, last_y = x_pos, y_pos
 
