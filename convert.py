@@ -57,8 +57,8 @@ def convert_image_to_gcode(log, header, holes, image, scale, settings, outline_p
             log.complete_single()
 
     TRAVEL_HEIGHT = 5
-    CUT_HEIGHT =  -.4
-    HOLE_HEIGHT = -1
+    CUT_HEIGHT =  -settings["copper_cut_depth"]
+    HOLE_HEIGHT = -settings["hole_cut_depth"]
     PRE_HOLE_HEIGHT = 1
 
     prev_xyz = [0, 0, 8]

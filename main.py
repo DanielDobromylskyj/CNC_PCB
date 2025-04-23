@@ -545,6 +545,10 @@ class PCB:
             "pcb_hole_outline_width": 0.2,
 
             "separate_drill_gcode": True,
+
+            "copper_cut_depth": 0.4,
+            "hole_cut_depth": 1,
+            "silkscreen_cut_depth": 0.1,
         }
 
 
@@ -584,7 +588,7 @@ class PCB:
         gcode = self.__create_gcode_header(settings, xy_max, xy_min)
         gcode += f"\nG0 X0 Y0 Z5"
 
-        CUT_HEIGHT = -.1
+        CUT_HEIGHT = -settings["silkscreen_cut_depth"]
 
         x, y = 0, 0
         for command in self.topSilkscreen.commands:
@@ -615,8 +619,9 @@ class PCB:
         settings["work_speed(mm/min)"] = float(loaded_settings["Work Speed"][0])
         settings["jog_speed(mm/min)"] = float(loaded_settings["Travel Speed"][0])
         settings["pcb_hole_outline_width"] = float(loaded_settings["Hole Outline Width"][0])
-
-        #settings[""] = loaded_settings[""][0]
+        settings["copper_cut_depth"] = float(loaded_settings["Copper Cut Depth"][0])
+        settings["hole_cut_depth"] = float(loaded_settings["Though hole Depth"][0])
+        settings["silkscreen_cut_depth"] = float(loaded_settings["Silkscreen Cut Depth"][0])
 
         scale = int(config["Performance"]["Resolution"]["selected"])
 

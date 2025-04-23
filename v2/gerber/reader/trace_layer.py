@@ -47,7 +47,7 @@ class TraceLayer:
 
     def __load(self, fp) -> None:
         g_mode = None
-        last_x, last_y = 0, 0
+        last_x, last_y = None, None
 
         for line in fp.read().split("\n"):
             if line.startswith(";"):
@@ -95,9 +95,14 @@ class TraceLayer:
 
                     if g_mode == "01":  # straight lines
                         if values["D"] == "01":
+                            if last_x is None or last_y is None:
+                                raise Exception("Attempting to draw line without moving to start location")
+
                             self.commands.append(
                                 ("line", last_x, last_y, x_pos, y_pos, width)
                             )
+                            last_x, last_y = x_pos, y_pos
+
                         elif values["D"] == "02":  # move, dont draw
                             last_x, last_y = x_pos, y_pos
 
@@ -111,12 +116,14 @@ class TraceLayer:
                             aperture_points = primitive_to_lines(shape, active_aperture["params"])
                             aperture_points = [(x_pos + px, y_pos + py) for px, py in aperture_points]
 
+                            last_x, last_y = x_pos, y_pos
+
                             self.commands.append(
                                 ("blit", aperture_points)
                             )
 
                         else:
-                            raise Exception(f"Unknown value for D when parsing a line.'{values["D"]}'")
+                            raise Exception(f"Unknown value for D when parsing a line. '{values["D"]}'")
 
                     elif g_mode == "02":  # arc
                         i, j, d = values["I"], values["J"], values["D"]

@@ -48,4 +48,5 @@ class GerberView:
                     if x2* self.scale> self.shape[0]:
                         print("OUT OF BOUNDS", x2* self.scale, self.shape[0])
 
-                    self.draw.line([round(x1 * self.scale), round(y1 * self.scale), round(x2 * self.scale), round(y2 * self.scale)], colour, round(width))
+
+                    self.draw.line([round(x1 * self.scale), self.shape[1] - round(y1 * self.scale), round(x2 * self.scale), self.shape[1] - round(y2 * self.scale)], colour, round(width))
