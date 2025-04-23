@@ -84,7 +84,7 @@ class TraceLayer:
                     x_pos, y_pos = self.x_value_parser.parse_value(values["X"]), self.y_value_parser.parse_value(values["Y"])
                     active_aperture = self.aperture_macros.get_aperture()
 
-                    width = 0.2  # default trace width
+                    width = 1  # default trace width
                     if active_aperture["shape"] == "C":
                         width = float(active_aperture["params"][0])
 
@@ -123,6 +123,12 @@ class TraceLayer:
                             self.commands.append(
                                 ("blit", aperture_points)
                             )
+
+                            for x_pos, y_pos in aperture_points:
+                                if x_pos < self.min_xy[0]: self.min_xy[0] = x_pos
+                                if x_pos > self.max_xy[0]: self.max_xy[0] = x_pos
+                                if y_pos < self.min_xy[1]: self.min_xy[1] = y_pos
+                                if y_pos > self.max_xy[1]: self.max_xy[1] = y_pos
 
                         else:
                             raise Exception(f"Unknown value for D when parsing a line. '{values["D"]}'")

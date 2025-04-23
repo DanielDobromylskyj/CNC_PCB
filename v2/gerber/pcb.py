@@ -1,7 +1,7 @@
 import os
 
 from . import zip_manager
-from .reader import trace_layer
+from .reader import trace_layer, though_hole_layer
 import math
 
 class PCB:
@@ -21,8 +21,15 @@ class PCB:
     def __load(self) -> None:
         possible_files = [
             # Gerber Filename            Parser            Internal name   Colour
+            ("Gerber_BottomLayer.GBL", trace_layer.TraceLayer, "BottomLayer", (0, 0, 255)),
+            ("Gerber_BottomSilkscreenLayer.GBO", trace_layer.TraceLayer, "BottomSilk", (60, 60, 60)),
+
             ("Gerber_TopLayer.GTL", trace_layer.TraceLayer, "TopLayer", (255, 0, 0)),
             ("Gerber_TopSilkscreenLayer.GTO", trace_layer.TraceLayer, "TopSilk", (255, 255, 0)),
+            ("Drill_PTH_Through_Via.DRL", though_hole_layer.ThoughHole, "Vias", (255, 102, 0)),
+            ("Drill_NPTH_Through.DRL", though_hole_layer.ThoughHole, "NoPlateThoughHole", (20, 20, 20)),
+            ("Drill_PTH_Through.DRL", though_hole_layer.ThoughHole, "PlatedThoughHole", (50, 50, 50)),
+            ("Gerber_BoardOutlineLayer.GKO", trace_layer.TraceLayer, "Outline", (157, 0, 255))
         ]
 
         with zip_manager.GerberFile(self.path) as gerber_file:

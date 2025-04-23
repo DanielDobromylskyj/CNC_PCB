@@ -33,7 +33,7 @@ class GerberView:
         self.in_colour = in_colour
         self.scale = scale_size
 
-        self.image = Image.new("RGB" if in_colour else "1", shape, base_colour)
+        self.image = Image.new("RGB" if in_colour else "1", (shape[0], shape[1]+4), base_colour)
         self.draw = ImageDraw.Draw(self.image)
 
     def show(self):
@@ -50,4 +50,8 @@ class GerberView:
                 if command[0] == "blit":
                     points = [(round(x * self.scale), self.shape[1] - round(y * self.scale)) for x, y in command[1]]
                     self.draw.polygon(points, colour)
+
+                if command[0] == "hole":
+                    x, y, diameter = command[1:]
+                    self.draw.circle([round(x*self.scale), self.shape[1] - round(y*self.scale)], round((diameter/2)*self.scale), colour)
 
