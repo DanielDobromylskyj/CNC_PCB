@@ -21,6 +21,9 @@ class ValueParser:
             stripped = value.rstrip('0')
             value = stripped + ("0" * ((self.before_decimal + self.after_decimal) - len(stripped)))
 
+        if "-" in value:  # Ensure that we haven't made a value looking like 00-48910
+            value = "-" + value.replace("-", "")
+
         parsed_value = int(value) / (10 ** self.after_decimal)
 
         if self.unit == "IN":

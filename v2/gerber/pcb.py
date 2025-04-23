@@ -21,7 +21,8 @@ class PCB:
     def __load(self) -> None:
         possible_files = [
             # Gerber Filename            Parser            Internal name   Colour
-            ("Gerber_TopLayer.GTL", trace_layer.TraceLayer, "TopLayer", (255, 0, 0))
+            ("Gerber_TopLayer.GTL", trace_layer.TraceLayer, "TopLayer", (255, 0, 0)),
+            ("Gerber_TopSilkscreenLayer.GTO", trace_layer.TraceLayer, "TopSilk", (255, 255, 0)),
         ]
 
         with zip_manager.GerberFile(self.path) as gerber_file:

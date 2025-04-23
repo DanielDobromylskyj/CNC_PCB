@@ -45,8 +45,9 @@ class GerberView:
                 if command[0] == "line":
                     x1, y1, x2, y2,width = command[1], command[2], command[3], command[4], command[5]
 
-                    if x2* self.scale> self.shape[0]:
-                        print("OUT OF BOUNDS", x2* self.scale, self.shape[0])
-
-
                     self.draw.line([round(x1 * self.scale), self.shape[1] - round(y1 * self.scale), round(x2 * self.scale), self.shape[1] - round(y2 * self.scale)], colour, round(width))
+
+                if command[0] == "blit":
+                    points = [(round(x * self.scale), self.shape[1] - round(y * self.scale)) for x, y in command[1]]
+                    self.draw.polygon(points, colour)
+

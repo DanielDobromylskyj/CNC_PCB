@@ -93,6 +93,9 @@ class TraceLayer:
                     if y_pos - (width / 2) < self.min_xy[1]: self.min_xy[1] = y_pos - (width / 2)
                     if y_pos + (width / 2) > self.max_xy[1]: self.max_xy[1] = y_pos + (width / 2)
 
+                    if values["D"] == "02":  # move, dont draw
+                        last_x, last_y = x_pos, y_pos
+
                     if g_mode == "01":  # straight lines
                         if values["D"] == "01":
                             if last_x is None or last_y is None:
@@ -103,9 +106,8 @@ class TraceLayer:
                             )
                             last_x, last_y = x_pos, y_pos
 
-                        elif values["D"] == "02":  # move, dont draw
-                            last_x, last_y = x_pos, y_pos
-
+                        elif values["D"] == "02":
+                            pass
 
                         elif values["D"] == "03":  # blit aperture
                             if active_aperture["shape"] in self.aperture_macros.macro_shapes:
@@ -126,8 +128,7 @@ class TraceLayer:
                             raise Exception(f"Unknown value for D when parsing a line. '{values["D"]}'")
 
                     elif g_mode == "02":  # arc
-                        i, j, d = values["I"], values["J"], values["D"]
-
+                        i, j, d = self.x_value_parser.parse_value(values["I"]), self.y_value_parser.parse_value(values["J"]), values["D"]
                         start_x = last_x
                         start_y = last_y
 
@@ -137,7 +138,7 @@ class TraceLayer:
                         radius = math.sqrt(i ** 2 + j ** 2)
 
                         start_angle = math.atan2(start_y - center_y, start_x - center_x)
-                        end_angle = math.atan2(values["Y"] - center_y, values["X"] - center_x)
+                        end_angle = math.atan2(y_pos - center_y, x_pos - center_x)
 
                         if end_angle >= start_angle:
                             end_angle -= 2 * math.pi
@@ -152,10 +153,10 @@ class TraceLayer:
                         last_x, last_y = arc_points[-1]
                         for i, point in enumerate(arc_points[1:]):
                             self.commands.append(
-                                ('draw', point[0], point[1], arc_points[i][0], arc_points[i][1], width))
+                                ('line', point[0], point[1], arc_points[i][0], arc_points[i][1], width))
 
                     elif g_mode == "03":  # arc (opposite rotation)
-                        i, j, d = values["I"], values["J"], values["D"]
+                        i, j, d = self.x_value_parser.parse_value(values["I"]), self.y_value_parser.parse_value(values["J"]), values["D"]
 
                         start_x = last_x
                         start_y = last_y
@@ -166,7 +167,7 @@ class TraceLayer:
                         radius = math.sqrt(i ** 2 + j ** 2)
 
                         start_angle = math.atan2(start_y - center_y, start_x - center_x)
-                        end_angle = math.atan2(values["Y"] - center_y, values["X"] - center_x)
+                        end_angle = math.atan2(y_pos - center_y, x_pos - center_x)
 
                         if end_angle <= start_angle:
                             end_angle += 2 * math.pi
@@ -181,5 +182,5 @@ class TraceLayer:
                         last_x, last_y = arc_points[-1]
                         for i, point in enumerate(arc_points[1:]):
                             self.commands.append(
-                                ('draw', point[0], point[1], arc_points[i][0], arc_points[i][1], width))
+                                ('line', point[0], point[1], arc_points[i][0], arc_points[i][1], width))
 
