@@ -113,7 +113,7 @@ class TraceLayer:
                             if active_aperture["shape"] in self.aperture_macros.macro_shapes:
                                 shape = self.aperture_macros.macro_shapes[active_aperture["shape"]]
                             else:
-                                shape = self.aperture_macros.macro_shapes[active_aperture["shape"]]
+                                shape = self.aperture_macros.macro_definitions[active_aperture["shape"]]
 
                             aperture_points = primitive_to_lines(shape, active_aperture["params"])
                             aperture_points = [(x_pos + px, y_pos + py) for px, py in aperture_points]

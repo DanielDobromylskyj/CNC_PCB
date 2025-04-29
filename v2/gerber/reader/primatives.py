@@ -11,6 +11,11 @@ def get_defaults():
             "R": {
                 "primitive": "rect",
                 "params": ["1", "$1", "$2"]
+            },
+
+            "O": {
+                "primitive": "oval_rect",
+                "params": ["1", "$1", "$2"]
             }
         })
 
@@ -121,6 +126,11 @@ def primitive_to_lines(shape, def_params):
         if visible == 1:
             r = width / 2
             return [(r * math.cos(a), r * math.sin(a)) for a in [i * (2 * math.pi / 50) for i in range(50)]]
+
+    elif shape["primitive"] == "oval_rect":
+        visible, width, height = params
+        r = max(width/2, height/2)
+        return primitive_to_lines({"primitive": "21", "params": ["1", "$1", "$2", "0", "0", "$3"]}, (width, height, r))
 
     elif shape["primitive"] == "rect":  # high jacking myself self
         return primitive_to_lines({"primitive": "21", "params": ["1", "$1", "$2", "0", "0", "0"]}, params)

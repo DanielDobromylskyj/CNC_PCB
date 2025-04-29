@@ -1,8 +1,8 @@
-import os
-
 from . import zip_manager
 from .reader import trace_layer, though_hole_layer
 import math
+import os
+
 
 class PCB:
     def __init__(self, path: str):

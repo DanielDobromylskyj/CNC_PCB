@@ -1,0 +1,26 @@
+{
+      "units": "metric",
+      "resolution-mode": "high",
+      "resolution": 0.1,
+      "tools": {
+        "1": {
+          "units": "metric",
+          "shape": "cylindrical",
+          "length": 10.25,
+          "diameter": 0.41,
+          "description": ""
+        }
+      },
+      "workpiece": {
+        "automatic": true,
+        "margin": 5,
+        "bounds": {
+          "min": [-1.923, 1.6895, -2.1],
+          "max": [36.973, 26.0105, 0]
+        }
+      },
+      "files": [
+        "output/TopLayer.cnc",
+        "output/ThoughHoles.cnc"
+      ]
+    }
